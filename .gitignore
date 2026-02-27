@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Application Configuration ###
+application.yml
+application-*.yml
+!application.yml.example
