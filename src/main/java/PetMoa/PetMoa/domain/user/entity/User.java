@@ -61,11 +61,11 @@ public class User {
     }
 
     private void validateFields(String name, String phoneNumber, String address, String email) {
-        if (name == null || name.trim().isEmpty()) {
+        if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("이름은 필수입니다.");
         }
 
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new IllegalArgumentException("전화번호는 필수입니다.");
         }
 
@@ -73,11 +73,11 @@ public class User {
             throw new IllegalArgumentException("전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678 또는 01012345678)");
         }
 
-        if (address == null || address.trim().isEmpty()) {
+        if (address == null || address.isBlank()) {
             throw new IllegalArgumentException("주소는 필수입니다.");
         }
 
-        if (email != null && !email.trim().isEmpty() && !EMAIL_PATTERN.matcher(email).matches()) {
+        if (email != null && !email.isBlank() && !EMAIL_PATTERN.matcher(email).matches()) {
             throw new IllegalArgumentException("이메일 형식이 올바르지 않습니다.");
         }
     }

@@ -62,7 +62,7 @@ public class Pet {
     }
 
     private void validateFields(String name, PetType type, PetSize size, Integer age, Double weight, User owner) {
-        if (name == null || name.trim().isEmpty()) {
+        if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("이름은 필수입니다.");
         }
 
