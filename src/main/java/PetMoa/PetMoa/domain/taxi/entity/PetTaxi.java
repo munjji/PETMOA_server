@@ -59,15 +59,15 @@ public class PetTaxi {
     }
 
     private void validateFields(String licensePlate, String driverName, String driverPhoneNumber, VehicleSize vehicleSize) {
-        if (licensePlate == null || licensePlate.trim().isEmpty()) {
+        if (licensePlate == null || licensePlate.isBlank()) {
             throw new IllegalArgumentException("차량 번호는 필수입니다.");
         }
 
-        if (driverName == null || driverName.trim().isEmpty()) {
+        if (driverName == null || driverName.isBlank()) {
             throw new IllegalArgumentException("기사 이름은 필수입니다.");
         }
 
-        if (driverPhoneNumber == null || driverPhoneNumber.trim().isEmpty()) {
+        if (driverPhoneNumber == null || driverPhoneNumber.isBlank()) {
             throw new IllegalArgumentException("기사 연락처는 필수입니다.");
         }
 

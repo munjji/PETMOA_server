@@ -78,7 +78,6 @@ public class Reservation {
             throw new IllegalStateException("대기 중인 예약만 확정할 수 있습니다.");
         }
         this.status = ReservationStatus.CONFIRMED;
-        updateTimestamp();
     }
 
     public void cancel() {
@@ -86,7 +85,6 @@ public class Reservation {
             throw new IllegalStateException("취소할 수 없는 상태입니다.");
         }
         this.status = ReservationStatus.CANCELLED;
-        updateTimestamp();
     }
 
     public void complete() {
@@ -94,7 +92,6 @@ public class Reservation {
             throw new IllegalStateException("확정된 예약만 완료 처리할 수 있습니다.");
         }
         this.status = ReservationStatus.COMPLETED;
-        updateTimestamp();
     }
 
     public void noShow() {
@@ -102,7 +99,6 @@ public class Reservation {
             throw new IllegalStateException("확정된 예약만 노쇼 처리할 수 있습니다.");
         }
         this.status = ReservationStatus.NO_SHOW;
-        updateTimestamp();
     }
 
     public boolean canConfirm() {
@@ -111,10 +107,6 @@ public class Reservation {
 
     public boolean canCancel() {
         return this.status == ReservationStatus.PENDING || this.status == ReservationStatus.CONFIRMED;
-    }
-
-    private void updateTimestamp() {
-        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate

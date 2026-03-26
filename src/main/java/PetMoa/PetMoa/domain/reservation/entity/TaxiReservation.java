@@ -72,11 +72,11 @@ public class TaxiReservation {
             throw new IllegalArgumentException("택시는 필수입니다.");
         }
 
-        if (pickupAddress == null || pickupAddress.trim().isEmpty()) {
+        if (pickupAddress == null || pickupAddress.isBlank()) {
             throw new IllegalArgumentException("픽업 주소는 필수입니다.");
         }
 
-        if (dropoffAddress == null || dropoffAddress.trim().isEmpty()) {
+        if (dropoffAddress == null || dropoffAddress.isBlank()) {
             throw new IllegalArgumentException("목적지 주소는 필수입니다.");
         }
 

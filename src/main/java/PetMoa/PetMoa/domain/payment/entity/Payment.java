@@ -74,7 +74,7 @@ public class Payment {
             throw new IllegalArgumentException("예약은 필수입니다.");
         }
 
-        if (orderId == null || orderId.trim().isEmpty()) {
+        if (orderId == null || orderId.isBlank()) {
             throw new IllegalArgumentException("주문 ID는 필수입니다.");
         }
 

@@ -59,7 +59,7 @@ public class Veterinarian {
     }
 
     private void validateFields(String name, MedicalDepartment department, Hospital hospital, LocalTime workStartTime, LocalTime workEndTime) {
-        if (name == null || name.trim().isEmpty()) {
+        if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("이름은 필수입니다.");
         }
 

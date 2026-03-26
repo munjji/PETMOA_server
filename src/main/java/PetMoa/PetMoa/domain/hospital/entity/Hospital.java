@@ -64,15 +64,15 @@ public class Hospital {
     }
 
     private void validateFields(String name, String address, String phoneNumber, Double latitude, Double longitude) {
-        if (name == null || name.trim().isEmpty()) {
+        if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("병원 이름은 필수입니다.");
         }
 
-        if (address == null || address.trim().isEmpty()) {
+        if (address == null || address.isBlank()) {
             throw new IllegalArgumentException("주소는 필수입니다.");
         }
 
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
             throw new IllegalArgumentException("연락처는 필수입니다.");
         }
 

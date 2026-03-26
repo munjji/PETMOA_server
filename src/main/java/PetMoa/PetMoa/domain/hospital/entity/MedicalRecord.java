@@ -70,7 +70,7 @@ public class MedicalRecord {
             throw new IllegalArgumentException("반려동물은 필수입니다.");
         }
 
-        if (diagnosis == null || diagnosis.trim().isEmpty()) {
+        if (diagnosis == null || diagnosis.isBlank()) {
             throw new IllegalArgumentException("진단명은 필수입니다.");
         }
 
@@ -89,13 +89,13 @@ public class MedicalRecord {
         StringBuilder summary = new StringBuilder();
         summary.append("[").append(visitDate.format(formatter)).append("] ");
         summary.append("진단: ").append(diagnosis);
-        if (treatment != null && !treatment.trim().isEmpty()) {
+        if (treatment != null && !treatment.isBlank()) {
             summary.append(" | 처치: ").append(treatment);
         }
         return summary.toString();
     }
 
     public boolean hasPrescription() {
-        return this.prescription != null && !this.prescription.trim().isEmpty();
+        return this.prescription != null && !this.prescription.isBlank();
     }
 }
