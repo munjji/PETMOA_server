@@ -1,6 +1,8 @@
 package PetMoa.PetMoa.domain.taxi.service;
 
 import PetMoa.PetMoa.domain.pet.entity.PetSize;
+import PetMoa.PetMoa.domain.reservation.repository.TaxiReservationRepository;
+import PetMoa.PetMoa.domain.taxi.dto.TaxiAvailabilityResponse;
 import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
 import PetMoa.PetMoa.domain.taxi.entity.VehicleSize;
@@ -15,12 +17,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +36,9 @@ class PetTaxiQueryServiceTest {
 
     @Mock
     private PetTaxiRepository petTaxiRepository;
+
+    @Mock
+    private TaxiReservationRepository taxiReservationRepository;
 
     @InjectMocks
     private PetTaxiQueryService petTaxiQueryService;
@@ -126,6 +137,148 @@ class PetTaxiQueryServiceTest {
             // then
             assertThat(result).hasSize(1);
             assertThat(result.get(0).getVehicleSize()).isEqualTo(VehicleSize.LARGE);
+        }
+    }
+
+    @Nested
+    @DisplayName("펫택시 이용 가능 여부 확인")
+    class CheckAvailability {
+
+        @Test
+        @DisplayName("성공: 이용 가능한 택시가 있는 경우")
+        void checkAvailability_Available() {
+            // given
+            PetSize petSize = PetSize.SMALL;
+            LocalDateTime pickupTime = LocalDateTime.now().plusHours(2);
+            String pickupAddress = "서울시 강남구 역삼동 123";
+
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.SMALL, VehicleSize.MEDIUM, VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(List.of(testTaxi));
+            given(taxiReservationRepository.findReservedTaxiIdsBetween(any(), any()))
+                    .willReturn(Collections.emptySet());
+
+            // when
+            TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
+
+            // then
+            assertThat(result.available()).isTrue();
+            assertThat(result.availableVehicleCount()).isEqualTo(1);
+            assertThat(result.estimatedFee()).isNotNull();
+            assertThat(result.estimatedArrivalMinutes()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("성공: 이용 가능한 택시가 없는 경우 (AVAILABLE 상태인 택시 없음)")
+        void checkAvailability_NotAvailable() {
+            // given
+            PetSize petSize = PetSize.LARGE;
+            LocalDateTime pickupTime = LocalDateTime.now().plusHours(2);
+            String pickupAddress = "서울시 강남구 역삼동 123";
+
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(Collections.emptyList());
+
+            // when
+            TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
+
+            // then
+            assertThat(result.available()).isFalse();
+            assertThat(result.availableVehicleCount()).isEqualTo(0);
+            assertThat(result.estimatedFee()).isNull();
+        }
+
+        @Test
+        @DisplayName("성공: 여러 대의 택시가 가용한 경우")
+        void checkAvailability_MultipleTaxis() {
+            // given
+            PetSize petSize = PetSize.MEDIUM;
+            LocalDateTime pickupTime = LocalDateTime.now().plusHours(2);
+            String pickupAddress = "서울시 강남구 역삼동 123";
+
+            PetTaxi taxi2 = PetTaxi.builder()
+                    .licensePlate("서울34나5678")
+                    .driverName("김철수")
+                    .driverPhoneNumber("010-2222-3333")
+                    .vehicleSize(VehicleSize.LARGE)
+                    .status(TaxiStatus.AVAILABLE)
+                    .build();
+
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.MEDIUM, VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(List.of(testTaxi, taxi2));
+            given(taxiReservationRepository.findReservedTaxiIdsBetween(any(), any()))
+                    .willReturn(Collections.emptySet());
+
+            // when
+            TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
+
+            // then
+            assertThat(result.available()).isTrue();
+            assertThat(result.availableVehicleCount()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("성공: 해당 시간대에 이미 예약된 택시는 제외")
+        void checkAvailability_ExcludeReservedTaxis() {
+            // given
+            PetSize petSize = PetSize.SMALL;
+            LocalDateTime pickupTime = LocalDateTime.now().plusHours(2);
+            String pickupAddress = "서울시 강남구 역삼동 123";
+
+            // ID 설정
+            ReflectionTestUtils.setField(testTaxi, "id", 1L);
+
+            PetTaxi taxi2 = PetTaxi.builder()
+                    .licensePlate("서울34나5678")
+                    .driverName("김철수")
+                    .driverPhoneNumber("010-2222-3333")
+                    .vehicleSize(VehicleSize.MEDIUM)
+                    .status(TaxiStatus.AVAILABLE)
+                    .build();
+            ReflectionTestUtils.setField(taxi2, "id", 2L);
+
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.SMALL, VehicleSize.MEDIUM, VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(List.of(testTaxi, taxi2));
+            // testTaxi(ID=1)가 해당 시간대에 이미 예약됨
+            given(taxiReservationRepository.findReservedTaxiIdsBetween(any(), any()))
+                    .willReturn(Set.of(1L));
+
+            // when
+            TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
+
+            // then
+            // 2대 중 1대(ID=1)가 예약되어 있으므로 실제 가용 차량은 1대
+            assertThat(result.available()).isTrue();
+            assertThat(result.availableVehicleCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("실패: 모든 택시가 해당 시간대에 예약된 경우")
+        void checkAvailability_AllTaxisReserved() {
+            // given
+            PetSize petSize = PetSize.SMALL;
+            LocalDateTime pickupTime = LocalDateTime.now().plusHours(2);
+            String pickupAddress = "서울시 강남구 역삼동 123";
+
+            // ID 설정
+            ReflectionTestUtils.setField(testTaxi, "id", 1L);
+
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.SMALL, VehicleSize.MEDIUM, VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(List.of(testTaxi));
+            // testTaxi(ID=1)가 해당 시간대에 이미 예약됨
+            given(taxiReservationRepository.findReservedTaxiIdsBetween(any(), any()))
+                    .willReturn(Set.of(1L));
+
+            // when
+            TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
+
+            // then
+            assertThat(result.available()).isFalse();
+            assertThat(result.availableVehicleCount()).isEqualTo(0);
         }
     }
 }

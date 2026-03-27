@@ -67,14 +67,14 @@ class PetCommandServiceTest {
         @DisplayName("성공: 유효한 정보로 반려동물 등록")
         void createPet_Success() {
             // given
-            PetCreateRequest request = PetCreateRequest.builder()
-                    .name("뽀삐")
-                    .type(PetType.DOG)
-                    .size(PetSize.SMALL)
-                    .age(3)
-                    .weight(4.5)
-                    .breed("말티즈")
-                    .build();
+            PetCreateRequest request = new PetCreateRequest(
+                    "뽀삐",
+                    PetType.DOG,
+                    PetSize.SMALL,
+                    3,
+                    4.5,
+                    "말티즈"
+            );
 
             given(userRepository.findById(1L)).willReturn(Optional.of(testOwner));
             given(petRepository.save(any(Pet.class))).willReturn(testPet);
@@ -93,14 +93,14 @@ class PetCommandServiceTest {
         @DisplayName("실패: 존재하지 않는 소유자")
         void createPet_OwnerNotFound() {
             // given
-            PetCreateRequest request = PetCreateRequest.builder()
-                    .name("뽀삐")
-                    .type(PetType.DOG)
-                    .size(PetSize.SMALL)
-                    .age(3)
-                    .weight(4.5)
-                    .breed("말티즈")
-                    .build();
+            PetCreateRequest request = new PetCreateRequest(
+                    "뽀삐",
+                    PetType.DOG,
+                    PetSize.SMALL,
+                    3,
+                    4.5,
+                    "말티즈"
+            );
 
             given(userRepository.findById(999L)).willReturn(Optional.empty());
 

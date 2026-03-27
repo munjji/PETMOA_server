@@ -50,12 +50,12 @@ class UserCommandServiceTest {
         @DisplayName("성공: 유효한 정보로 사용자 생성")
         void createUser_Success() {
             // given
-            UserCreateRequest request = UserCreateRequest.builder()
-                    .name("홍길동")
-                    .phoneNumber("010-1234-5678")
-                    .address("서울시 강남구")
-                    .email("hong@example.com")
-                    .build();
+            UserCreateRequest request = new UserCreateRequest(
+                    "홍길동",
+                    "010-1234-5678",
+                    "서울시 강남구",
+                    "hong@example.com"
+            );
 
             given(userRepository.existsByPhoneNumber("010-1234-5678")).willReturn(false);
             given(userRepository.save(any(User.class))).willReturn(testUser);
@@ -74,11 +74,12 @@ class UserCommandServiceTest {
         @DisplayName("실패: 중복된 전화번호")
         void createUser_DuplicatePhoneNumber() {
             // given
-            UserCreateRequest request = UserCreateRequest.builder()
-                    .name("홍길동")
-                    .phoneNumber("010-1234-5678")
-                    .address("서울시 강남구")
-                    .build();
+            UserCreateRequest request = new UserCreateRequest(
+                    "홍길동",
+                    "010-1234-5678",
+                    "서울시 강남구",
+                    null
+            );
 
             given(userRepository.existsByPhoneNumber("010-1234-5678")).willReturn(true);
 

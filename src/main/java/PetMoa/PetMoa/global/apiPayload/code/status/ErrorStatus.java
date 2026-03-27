@@ -19,15 +19,33 @@ public enum ErrorStatus implements BaseErrorCode {
     // 회원 관련 에러
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "MEMBER4001", "사용자가 없습니다."),
 
+    // 반려동물 관련 에러
+    PET_NOT_FOUND(HttpStatus.NOT_FOUND, "PET4001", "반려동물을 찾을 수 없습니다."),
+
     // 병원 관련 에러
     HOSPITAL_NOT_FOUND(HttpStatus.NOT_FOUND, "HOSPITAL4001", "병원을 찾을 수 없습니다."),
 
+    // 수의사 관련 에러
+    VETERINARIAN_NOT_FOUND(HttpStatus.NOT_FOUND, "VETERINARIAN4001", "수의사를 찾을 수 없습니다."),
+
+    // 타임슬롯 관련 에러
+    TIMESLOT_NOT_FOUND(HttpStatus.NOT_FOUND, "TIMESLOT4001", "타임슬롯을 찾을 수 없습니다."),
+    TIMESLOT_CAPACITY_EXCEEDED(HttpStatus.CONFLICT, "TIMESLOT4091", "타임슬롯 정원이 초과되었습니다."),
+
+    // 펫택시 관련 에러
+    TAXI_NOT_FOUND(HttpStatus.NOT_FOUND, "TAXI4001", "펫택시를 찾을 수 없습니다."),
+    TAXI_NO_AVAILABLE_VEHICLE(HttpStatus.BAD_REQUEST, "TAXI4002", "배차 가능한 택시가 없습니다."),
+    TAXI_TIME_UNAVAILABLE(HttpStatus.BAD_REQUEST, "TAXI4003", "해당 시간대에 배차가 불가능합니다."),
+
     // 예약 관련 에러
-    APPOINTMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "APPOINTMENT4001", "예약을 찾을 수 없습니다."),
-    APPOINTMENT_TIME_CONFLICT(HttpStatus.CONFLICT, "APPOINTMENT4091", "이미 예약된 시간입니다."),
+    RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RESERVATION4001", "예약을 찾을 수 없습니다."),
+    RESERVATION_TIME_CONFLICT(HttpStatus.CONFLICT, "RESERVATION4091", "이미 예약된 시간입니다."),
 
     // 결제 관련 에러
-    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT4001", "결제에 실패했습니다.");
+    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT4001", "결제에 실패했습니다."),
+
+    // 환불 관련 에러
+    REFUND_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "REFUND4001", "환불이 불가능합니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
