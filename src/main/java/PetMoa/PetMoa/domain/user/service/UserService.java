@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.user.service;
 
+import PetMoa.PetMoa.domain.user.dto.UserCreateRequest;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,16 +18,16 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Transactional
-    public User createUser(String name, String phoneNumber, String address, String email) {
-        if (userRepository.existsByPhoneNumber(phoneNumber)) {
+    public User createUser(UserCreateRequest request) {
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new IllegalArgumentException("이미 등록된 전화번호입니다.");
         }
 
         User user = User.builder()
-                .name(name)
-                .phoneNumber(phoneNumber)
-                .address(address)
-                .email(email)
+                .name(request.getName())
+                .phoneNumber(request.getPhoneNumber())
+                .address(request.getAddress())
+                .email(request.getEmail())
                 .build();
 
         return userRepository.save(user);

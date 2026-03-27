@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.pet.service;
 
+import PetMoa.PetMoa.domain.pet.dto.PetCreateRequest;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.entity.PetSize;
 import PetMoa.PetMoa.domain.pet.entity.PetType;
@@ -67,11 +68,20 @@ class PetServiceTest {
         @DisplayName("성공: 유효한 정보로 반려동물 등록")
         void createPet_Success() {
             // given
+            PetCreateRequest request = PetCreateRequest.builder()
+                    .name("뽀삐")
+                    .type(PetType.DOG)
+                    .size(PetSize.SMALL)
+                    .age(3)
+                    .weight(4.5)
+                    .breed("말티즈")
+                    .build();
+
             given(userRepository.findById(1L)).willReturn(Optional.of(testOwner));
             given(petRepository.save(any(Pet.class))).willReturn(testPet);
 
             // when
-            Pet result = petService.createPet(1L, "뽀삐", PetType.DOG, PetSize.SMALL, 3, 4.5, "말티즈");
+            Pet result = petService.createPet(1L, request);
 
             // then
             assertThat(result).isNotNull();
@@ -84,10 +94,19 @@ class PetServiceTest {
         @DisplayName("실패: 존재하지 않는 소유자")
         void createPet_OwnerNotFound() {
             // given
+            PetCreateRequest request = PetCreateRequest.builder()
+                    .name("뽀삐")
+                    .type(PetType.DOG)
+                    .size(PetSize.SMALL)
+                    .age(3)
+                    .weight(4.5)
+                    .breed("말티즈")
+                    .build();
+
             given(userRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> petService.createPet(999L, "뽀삐", PetType.DOG, PetSize.SMALL, 3, 4.5, "말티즈"))
+            assertThatThrownBy(() -> petService.createPet(999L, request))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("사용자를 찾을 수 없습니다");
         }

@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.user.service;
 
+import PetMoa.PetMoa.domain.user.dto.UserCreateRequest;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -50,11 +51,18 @@ class UserServiceTest {
         @DisplayName("성공: 유효한 정보로 사용자 생성")
         void createUser_Success() {
             // given
+            UserCreateRequest request = UserCreateRequest.builder()
+                    .name("홍길동")
+                    .phoneNumber("010-1234-5678")
+                    .address("서울시 강남구")
+                    .email("hong@example.com")
+                    .build();
+
             given(userRepository.existsByPhoneNumber("010-1234-5678")).willReturn(false);
             given(userRepository.save(any(User.class))).willReturn(testUser);
 
             // when
-            User result = userService.createUser("홍길동", "010-1234-5678", "서울시 강남구", "hong@example.com");
+            User result = userService.createUser(request);
 
             // then
             assertThat(result).isNotNull();
@@ -67,10 +75,16 @@ class UserServiceTest {
         @DisplayName("실패: 중복된 전화번호")
         void createUser_DuplicatePhoneNumber() {
             // given
+            UserCreateRequest request = UserCreateRequest.builder()
+                    .name("홍길동")
+                    .phoneNumber("010-1234-5678")
+                    .address("서울시 강남구")
+                    .build();
+
             given(userRepository.existsByPhoneNumber("010-1234-5678")).willReturn(true);
 
             // when & then
-            assertThatThrownBy(() -> userService.createUser("홍길동", "010-1234-5678", "서울시 강남구", null))
+            assertThatThrownBy(() -> userService.createUser(request))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("이미 등록된 전화번호");
         }

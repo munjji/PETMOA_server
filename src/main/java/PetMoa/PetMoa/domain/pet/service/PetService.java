@@ -1,8 +1,7 @@
 package PetMoa.PetMoa.domain.pet.service;
 
+import PetMoa.PetMoa.domain.pet.dto.PetCreateRequest;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
-import PetMoa.PetMoa.domain.pet.entity.PetSize;
-import PetMoa.PetMoa.domain.pet.entity.PetType;
 import PetMoa.PetMoa.domain.pet.repository.PetRepository;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
@@ -22,17 +21,17 @@ public class PetService {
     private final UserRepository userRepository;
 
     @Transactional
-    public Pet createPet(Long ownerId, String name, PetType type, PetSize size, Integer age, Double weight, String breed) {
+    public Pet createPet(Long ownerId, PetCreateRequest request) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다. id=" + ownerId));
 
         Pet pet = Pet.builder()
-                .name(name)
-                .type(type)
-                .size(size)
-                .age(age)
-                .weight(weight)
-                .breed(breed)
+                .name(request.getName())
+                .type(request.getType())
+                .size(request.getSize())
+                .age(request.getAge())
+                .weight(request.getWeight())
+                .breed(request.getBreed())
                 .owner(owner)
                 .build();
 
