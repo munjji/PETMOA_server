@@ -3,6 +3,7 @@ package PetMoa.PetMoa.domain.taxi.service;
 import PetMoa.PetMoa.domain.pet.entity.PetSize;
 import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
+import PetMoa.PetMoa.domain.taxi.entity.VehicleSize;
 import PetMoa.PetMoa.domain.taxi.repository.PetTaxiRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +30,15 @@ public class PetTaxiService {
     }
 
     public List<PetTaxi> getAvailableTaxisForPetSize(PetSize petSize) {
-        return getAvailableTaxis().stream()
-                .filter(taxi -> taxi.canAccommodate(petSize))
-                .toList();
+        Set<VehicleSize> allowedVehicleSizes = getAllowedVehicleSizes(petSize);
+        return petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedVehicleSizes);
+    }
+
+    private Set<VehicleSize> getAllowedVehicleSizes(PetSize petSize) {
+        return switch (petSize) {
+            case SMALL -> Set.of(VehicleSize.SMALL, VehicleSize.MEDIUM, VehicleSize.LARGE);
+            case MEDIUM -> Set.of(VehicleSize.MEDIUM, VehicleSize.LARGE);
+            case LARGE -> Set.of(VehicleSize.LARGE);
+        };
     }
 }

@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -89,10 +90,12 @@ class PetTaxiServiceTest {
         }
 
         @Test
-        @DisplayName("성공: 반려동물 크기에 맞는 이용 가능한 펫택시 조회")
-        void getAvailableTaxisForPetSize_Success() {
+        @DisplayName("성공: 반려동물 크기에 맞는 이용 가능한 펫택시 조회 (소형)")
+        void getAvailableTaxisForPetSize_SmallPet() {
             // given
-            given(petTaxiRepository.findByStatus(TaxiStatus.AVAILABLE)).willReturn(List.of(testTaxi));
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.SMALL, VehicleSize.MEDIUM, VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(List.of(testTaxi));
 
             // when
             List<PetTaxi> result = petTaxiService.getAvailableTaxisForPetSize(PetSize.SMALL);
@@ -112,7 +115,10 @@ class PetTaxiServiceTest {
                     .vehicleSize(VehicleSize.LARGE)
                     .status(TaxiStatus.AVAILABLE)
                     .build();
-            given(petTaxiRepository.findByStatus(TaxiStatus.AVAILABLE)).willReturn(List.of(testTaxi, largeTaxi));
+
+            Set<VehicleSize> allowedSizes = Set.of(VehicleSize.LARGE);
+            given(petTaxiRepository.findByStatusAndVehicleSizeIn(TaxiStatus.AVAILABLE, allowedSizes))
+                    .willReturn(List.of(largeTaxi));
 
             // when
             List<PetTaxi> result = petTaxiService.getAvailableTaxisForPetSize(PetSize.LARGE);
