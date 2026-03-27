@@ -25,13 +25,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class TimeSlotServiceTest {
+class TimeSlotQueryServiceTest {
 
     @Mock
     private TimeSlotRepository timeSlotRepository;
 
     @InjectMocks
-    private TimeSlotService timeSlotService;
+    private TimeSlotQueryService timeSlotQueryService;
 
     private Veterinarian testVet;
     private TimeSlot testTimeSlot;
@@ -72,7 +72,7 @@ class TimeSlotServiceTest {
             given(timeSlotRepository.findById(1L)).willReturn(Optional.of(testTimeSlot));
 
             // when
-            TimeSlot result = timeSlotService.getTimeSlotById(1L);
+            TimeSlot result = timeSlotQueryService.getTimeSlotById(1L);
 
             // then
             assertThat(result).isNotNull();
@@ -86,7 +86,7 @@ class TimeSlotServiceTest {
             given(timeSlotRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> timeSlotService.getTimeSlotById(999L))
+            assertThatThrownBy(() -> timeSlotQueryService.getTimeSlotById(999L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("타임슬롯을 찾을 수 없습니다");
         }
@@ -106,7 +106,7 @@ class TimeSlotServiceTest {
             given(timeSlotRepository.findByVeterinarianAndDate(1L, date)).willReturn(List.of(testTimeSlot, slot2));
 
             // when
-            List<TimeSlot> result = timeSlotService.getTimeSlotsByVeterinarianAndDate(1L, date);
+            List<TimeSlot> result = timeSlotQueryService.getTimeSlotsByVeterinarianAndDate(1L, date);
 
             // then
             assertThat(result).hasSize(2);
@@ -120,7 +120,7 @@ class TimeSlotServiceTest {
             given(timeSlotRepository.findAvailableSlots(1L, date)).willReturn(List.of(testTimeSlot));
 
             // when
-            List<TimeSlot> result = timeSlotService.getAvailableTimeSlots(1L, date);
+            List<TimeSlot> result = timeSlotQueryService.getAvailableTimeSlots(1L, date);
 
             // then
             assertThat(result).hasSize(1);

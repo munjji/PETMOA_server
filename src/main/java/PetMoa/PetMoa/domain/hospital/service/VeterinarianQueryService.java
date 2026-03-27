@@ -13,7 +13,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class VeterinarianService {
+public class VeterinarianQueryService {
 
     private final VeterinarianRepository veterinarianRepository;
 

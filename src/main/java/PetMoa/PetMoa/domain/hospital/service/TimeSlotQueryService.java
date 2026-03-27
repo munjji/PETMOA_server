@@ -13,7 +13,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class TimeSlotService {
+public class TimeSlotQueryService {
 
     private final TimeSlotRepository timeSlotRepository;
 

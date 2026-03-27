@@ -23,13 +23,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class VeterinarianServiceTest {
+class VeterinarianQueryServiceTest {
 
     @Mock
     private VeterinarianRepository veterinarianRepository;
 
     @InjectMocks
-    private VeterinarianService veterinarianService;
+    private VeterinarianQueryService veterinarianQueryService;
 
     private Hospital testHospital;
     private Veterinarian testVet;
@@ -62,7 +62,7 @@ class VeterinarianServiceTest {
             given(veterinarianRepository.findById(1L)).willReturn(Optional.of(testVet));
 
             // when
-            Veterinarian result = veterinarianService.getVeterinarianById(1L);
+            Veterinarian result = veterinarianQueryService.getVeterinarianById(1L);
 
             // then
             assertThat(result).isNotNull();
@@ -76,7 +76,7 @@ class VeterinarianServiceTest {
             given(veterinarianRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> veterinarianService.getVeterinarianById(999L))
+            assertThatThrownBy(() -> veterinarianQueryService.getVeterinarianById(999L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("수의사를 찾을 수 없습니다");
         }
@@ -95,7 +95,7 @@ class VeterinarianServiceTest {
             given(veterinarianRepository.findByHospitalId(1L)).willReturn(List.of(testVet, vet2));
 
             // when
-            List<Veterinarian> result = veterinarianService.getVeterinariansByHospitalId(1L);
+            List<Veterinarian> result = veterinarianQueryService.getVeterinariansByHospitalId(1L);
 
             // then
             assertThat(result).hasSize(2);
@@ -108,7 +108,7 @@ class VeterinarianServiceTest {
             given(veterinarianRepository.findByDepartment(MedicalDepartment.GENERAL)).willReturn(List.of(testVet));
 
             // when
-            List<Veterinarian> result = veterinarianService.getVeterinariansByDepartment(MedicalDepartment.GENERAL);
+            List<Veterinarian> result = veterinarianQueryService.getVeterinariansByDepartment(MedicalDepartment.GENERAL);
 
             // then
             assertThat(result).hasSize(1);

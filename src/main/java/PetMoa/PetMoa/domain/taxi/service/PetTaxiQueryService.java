@@ -16,7 +16,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class PetTaxiService {
+public class PetTaxiQueryService {
 
     private final PetTaxiRepository petTaxiRepository;
 

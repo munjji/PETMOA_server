@@ -22,13 +22,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class HospitalServiceTest {
+class HospitalQueryServiceTest {
 
     @Mock
     private HospitalRepository hospitalRepository;
 
     @InjectMocks
-    private HospitalService hospitalService;
+    private HospitalQueryService hospitalQueryService;
 
     private Hospital testHospital;
 
@@ -55,7 +55,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findById(1L)).willReturn(Optional.of(testHospital));
 
             // when
-            Hospital result = hospitalService.getHospitalById(1L);
+            Hospital result = hospitalQueryService.getHospitalById(1L);
 
             // then
             assertThat(result).isNotNull();
@@ -69,7 +69,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> hospitalService.getHospitalById(999L))
+            assertThatThrownBy(() -> hospitalQueryService.getHospitalById(999L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("병원을 찾을 수 없습니다");
         }
@@ -86,7 +86,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findAll()).willReturn(List.of(testHospital, hospital2));
 
             // when
-            List<Hospital> result = hospitalService.getAllHospitals();
+            List<Hospital> result = hospitalQueryService.getAllHospitals();
 
             // then
             assertThat(result).hasSize(2);
@@ -104,7 +104,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findByNameContaining("강남")).willReturn(List.of(testHospital));
 
             // when
-            List<Hospital> result = hospitalService.searchByName("강남");
+            List<Hospital> result = hospitalQueryService.searchByName("강남");
 
             // then
             assertThat(result).hasSize(1);
@@ -118,7 +118,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findByAddressContaining("강남구")).willReturn(List.of(testHospital));
 
             // when
-            List<Hospital> result = hospitalService.searchByAddress("강남구");
+            List<Hospital> result = hospitalQueryService.searchByAddress("강남구");
 
             // then
             assertThat(result).hasSize(1);
@@ -131,7 +131,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findByAvailablePetType(PetType.DOG)).willReturn(List.of(testHospital));
 
             // when
-            List<Hospital> result = hospitalService.searchByPetType(PetType.DOG);
+            List<Hospital> result = hospitalQueryService.searchByPetType(PetType.DOG);
 
             // then
             assertThat(result).hasSize(1);
@@ -144,7 +144,7 @@ class HospitalServiceTest {
             given(hospitalRepository.findNearbyHospitals(37.5, 127.0, 5.0)).willReturn(List.of(testHospital));
 
             // when
-            List<Hospital> result = hospitalService.searchNearby(37.5, 127.0, 5.0);
+            List<Hospital> result = hospitalQueryService.searchNearby(37.5, 127.0, 5.0);
 
             // then
             assertThat(result).hasSize(1);
