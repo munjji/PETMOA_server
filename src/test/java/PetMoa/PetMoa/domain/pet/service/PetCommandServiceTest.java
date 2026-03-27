@@ -17,7 +17,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +26,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class PetServiceTest {
+class PetCommandServiceTest {
 
     @Mock
     private PetRepository petRepository;
@@ -36,7 +35,7 @@ class PetServiceTest {
     private UserRepository userRepository;
 
     @InjectMocks
-    private PetService petService;
+    private PetCommandService petCommandService;
 
     private User testOwner;
     private Pet testPet;
@@ -81,7 +80,7 @@ class PetServiceTest {
             given(petRepository.save(any(Pet.class))).willReturn(testPet);
 
             // when
-            Pet result = petService.createPet(1L, request);
+            Pet result = petCommandService.createPet(1L, request);
 
             // then
             assertThat(result).isNotNull();
@@ -106,59 +105,9 @@ class PetServiceTest {
             given(userRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> petService.createPet(999L, request))
+            assertThatThrownBy(() -> petCommandService.createPet(999L, request))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("사용자를 찾을 수 없습니다");
-        }
-    }
-
-    @Nested
-    @DisplayName("반려동물 조회")
-    class GetPet {
-
-        @Test
-        @DisplayName("성공: ID로 반려동물 조회")
-        void getPetById_Success() {
-            // given
-            given(petRepository.findById(1L)).willReturn(Optional.of(testPet));
-
-            // when
-            Pet result = petService.getPetById(1L);
-
-            // then
-            assertThat(result).isNotNull();
-            assertThat(result.getName()).isEqualTo("뽀삐");
-        }
-
-        @Test
-        @DisplayName("실패: 존재하지 않는 ID")
-        void getPetById_NotFound() {
-            // given
-            given(petRepository.findById(999L)).willReturn(Optional.empty());
-
-            // when & then
-            assertThatThrownBy(() -> petService.getPetById(999L))
-                    .isInstanceOf(EntityNotFoundException.class)
-                    .hasMessageContaining("반려동물을 찾을 수 없습니다");
-        }
-
-        @Test
-        @DisplayName("성공: 소유자 ID로 반려동물 목록 조회")
-        void getPetsByOwnerId_Success() {
-            // given
-            Pet pet2 = Pet.builder()
-                    .name("초코")
-                    .type(PetType.DOG)
-                    .size(PetSize.MEDIUM)
-                    .owner(testOwner)
-                    .build();
-            given(petRepository.findByOwnerId(1L)).willReturn(List.of(testPet, pet2));
-
-            // when
-            List<Pet> result = petService.getPetsByOwnerId(1L);
-
-            // then
-            assertThat(result).hasSize(2);
         }
     }
 
@@ -173,7 +122,7 @@ class PetServiceTest {
             given(petRepository.findById(1L)).willReturn(Optional.of(testPet));
 
             // when
-            petService.deletePet(1L);
+            petCommandService.deletePet(1L);
 
             // then
             verify(petRepository).delete(testPet);
@@ -186,7 +135,7 @@ class PetServiceTest {
             given(petRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> petService.deletePet(999L))
+            assertThatThrownBy(() -> petCommandService.deletePet(999L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("반려동물을 찾을 수 없습니다");
         }

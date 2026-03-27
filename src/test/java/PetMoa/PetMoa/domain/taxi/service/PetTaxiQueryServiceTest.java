@@ -24,13 +24,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-class PetTaxiServiceTest {
+class PetTaxiQueryServiceTest {
 
     @Mock
     private PetTaxiRepository petTaxiRepository;
 
     @InjectMocks
-    private PetTaxiService petTaxiService;
+    private PetTaxiQueryService petTaxiQueryService;
 
     private PetTaxi testTaxi;
 
@@ -56,7 +56,7 @@ class PetTaxiServiceTest {
             given(petTaxiRepository.findById(1L)).willReturn(Optional.of(testTaxi));
 
             // when
-            PetTaxi result = petTaxiService.getPetTaxiById(1L);
+            PetTaxi result = petTaxiQueryService.getPetTaxiById(1L);
 
             // then
             assertThat(result).isNotNull();
@@ -70,7 +70,7 @@ class PetTaxiServiceTest {
             given(petTaxiRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> petTaxiService.getPetTaxiById(999L))
+            assertThatThrownBy(() -> petTaxiQueryService.getPetTaxiById(999L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("펫택시를 찾을 수 없습니다");
         }
@@ -82,7 +82,7 @@ class PetTaxiServiceTest {
             given(petTaxiRepository.findByStatus(TaxiStatus.AVAILABLE)).willReturn(List.of(testTaxi));
 
             // when
-            List<PetTaxi> result = petTaxiService.getAvailableTaxis();
+            List<PetTaxi> result = petTaxiQueryService.getAvailableTaxis();
 
             // then
             assertThat(result).hasSize(1);
@@ -98,7 +98,7 @@ class PetTaxiServiceTest {
                     .willReturn(List.of(testTaxi));
 
             // when
-            List<PetTaxi> result = petTaxiService.getAvailableTaxisForPetSize(PetSize.SMALL);
+            List<PetTaxi> result = petTaxiQueryService.getAvailableTaxisForPetSize(PetSize.SMALL);
 
             // then
             assertThat(result).hasSize(1);
@@ -121,7 +121,7 @@ class PetTaxiServiceTest {
                     .willReturn(List.of(largeTaxi));
 
             // when
-            List<PetTaxi> result = petTaxiService.getAvailableTaxisForPetSize(PetSize.LARGE);
+            List<PetTaxi> result = petTaxiQueryService.getAvailableTaxisForPetSize(PetSize.LARGE);
 
             // then
             assertThat(result).hasSize(1);
