@@ -14,6 +14,7 @@ import java.util.List;
 public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
 
     private static final QHospital hospital = QHospital.hospital;
+    private static final double KILOMETERS_PER_DEGREE_LATITUDE = 111.0;
 
     private final JPAQueryFactory queryFactory;
 
@@ -51,8 +52,8 @@ public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
         // 간단한 구현: 위도/경도 범위로 필터링 (정확도는 낮지만 빠름)
         // 정확한 구현은 Native Query나 PostGIS 사용 권장
 
-        double latDiff = radiusKm / 111.0; // 위도 1도 = 약 111km
-        double lonDiff = radiusKm / (111.0 * Math.cos(Math.toRadians(latitude)));
+        double latDiff = radiusKm / KILOMETERS_PER_DEGREE_LATITUDE;
+        double lonDiff = radiusKm / (KILOMETERS_PER_DEGREE_LATITUDE * Math.cos(Math.toRadians(latitude)));
 
         return queryFactory
                 .selectFrom(hospital)
