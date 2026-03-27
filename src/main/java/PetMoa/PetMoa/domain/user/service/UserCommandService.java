@@ -16,15 +16,15 @@ public class UserCommandService {
     private final UserRepository userRepository;
 
     public User createUser(UserCreateRequest request) {
-        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+        if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
             throw new IllegalArgumentException("이미 등록된 전화번호입니다.");
         }
 
         User user = User.builder()
-                .name(request.getName())
-                .phoneNumber(request.getPhoneNumber())
-                .address(request.getAddress())
-                .email(request.getEmail())
+                .name(request.name())
+                .phoneNumber(request.phoneNumber())
+                .address(request.address())
+                .email(request.email())
                 .build();
 
         return userRepository.save(user);

@@ -154,10 +154,10 @@ class PetTaxiQueryServiceTest {
             TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
 
             // then
-            assertThat(result.isAvailable()).isTrue();
-            assertThat(result.getAvailableVehicleCount()).isEqualTo(1);
-            assertThat(result.getEstimatedFee()).isNotNull();
-            assertThat(result.getEstimatedArrivalMinutes()).isNotNull();
+            assertThat(result.available()).isTrue();
+            assertThat(result.availableVehicleCount()).isEqualTo(1);
+            assertThat(result.estimatedFee()).isNotNull();
+            assertThat(result.estimatedArrivalMinutes()).isNotNull();
         }
 
         @Test
@@ -176,9 +176,9 @@ class PetTaxiQueryServiceTest {
             TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
 
             // then
-            assertThat(result.isAvailable()).isFalse();
-            assertThat(result.getAvailableVehicleCount()).isEqualTo(0);
-            assertThat(result.getEstimatedFee()).isNull();
+            assertThat(result.available()).isFalse();
+            assertThat(result.availableVehicleCount()).isEqualTo(0);
+            assertThat(result.estimatedFee()).isNull();
         }
 
         @Test
@@ -205,8 +205,8 @@ class PetTaxiQueryServiceTest {
             TaxiAvailabilityResponse result = petTaxiQueryService.checkAvailability(petSize, pickupTime, pickupAddress);
 
             // then
-            assertThat(result.isAvailable()).isTrue();
-            assertThat(result.getAvailableVehicleCount()).isEqualTo(2);
+            assertThat(result.available()).isTrue();
+            assertThat(result.availableVehicleCount()).isEqualTo(2);
         }
     }
 }

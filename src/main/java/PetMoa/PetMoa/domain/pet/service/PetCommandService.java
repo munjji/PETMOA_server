@@ -23,12 +23,12 @@ public class PetCommandService {
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다. id=" + ownerId));
 
         Pet pet = Pet.builder()
-                .name(request.getName())
-                .type(request.getType())
-                .size(request.getSize())
-                .age(request.getAge())
-                .weight(request.getWeight())
-                .breed(request.getBreed())
+                .name(request.name())
+                .type(request.type())
+                .size(request.size())
+                .age(request.age())
+                .weight(request.weight())
+                .breed(request.breed())
                 .owner(owner)
                 .build();
 
