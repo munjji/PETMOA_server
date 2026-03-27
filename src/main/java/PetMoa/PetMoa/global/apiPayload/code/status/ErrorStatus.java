@@ -34,7 +34,8 @@ public enum ErrorStatus implements BaseErrorCode {
 
     // 펫택시 관련 에러
     TAXI_NOT_FOUND(HttpStatus.NOT_FOUND, "TAXI4001", "펫택시를 찾을 수 없습니다."),
-    TAXI_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "TAXI4002", "펫택시를 이용할 수 없습니다."),
+    TAXI_NO_AVAILABLE_VEHICLE(HttpStatus.BAD_REQUEST, "TAXI4002", "배차 가능한 택시가 없습니다."),
+    TAXI_TIME_UNAVAILABLE(HttpStatus.BAD_REQUEST, "TAXI4003", "해당 시간대에 배차가 불가능합니다."),
 
     // 예약 관련 에러
     RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RESERVATION4001", "예약을 찾을 수 없습니다."),

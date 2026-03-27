@@ -1,5 +1,5 @@
 
-# PetMoa API 스펙 문서
+# 🐱PetMoa API 스펙 문서
 
 ## 개요
 
@@ -53,7 +53,8 @@
 | TIMESLOT4001 | 404 | 타임슬롯 없음 |
 | TIMESLOT4091 | 409 | 타임슬롯 정원 초과 |
 | TAXI4001 | 404 | 펫택시 없음 |
-| TAXI4002 | 400 | 펫택시 이용 불가 |
+| TAXI4002 | 400 | 배차 가능한 택시 없음 |
+| TAXI4003 | 400 | 해당 시간대 배차 불가 |
 | RESERVATION4001 | 404 | 예약 없음 |
 | RESERVATION4091 | 409 | 예약 시간 충돌 |
 | PAYMENT4001 | 400 | 결제 실패 |
@@ -292,17 +293,21 @@ GET /api/v1/hospitals/{hospitalId}/veterinarians/{vetId}/time-slots
 
 ## 4. 펫택시 API (PetTaxi)
 
-### 4.1 이용 가능한 펫택시 조회
+> 펫택시는 카카오택시처럼 "호출" 방식으로 동작합니다.
+> 사용자가 조건만 입력하면 시스템이 자동으로 배차합니다.
+
+### 4.1 펫택시 이용 가능 여부 확인
 ```
-GET /api/v1/pet-taxis/available
+GET /api/v1/pet-taxis/check-availability
 ```
 
 **Query Parameters**
 ```
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| petSize | string | 반려동물 크기 (SMALL, MEDIUM, LARGE) |
-| pickupTime | string | 픽업 희망 시간 (ISO 8601) |
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| petSize | string | Y | 반려동물 크기 (SMALL, MEDIUM, LARGE) |
+| pickupTime | string | Y | 픽업 희망 시간 (ISO 8601) |
+| pickupAddress | string | Y | 출발지 주소 |
 ```
 
 **Response**
@@ -312,19 +317,18 @@ GET /api/v1/pet-taxis/available
   "code": "COMMON200",
   "message": "성공입니다.",
   "result": {
-    "petTaxis": [
-      {
-        "id": 1,
-        "licensePlate": "서울12가3456",
-        "driverName": "홍길동",
-        "driverPhoneNumber": "010-1234-5678",
-        "vehicleSize": "MEDIUM",
-        "status": "AVAILABLE"
-      }
-    ]
+    "available": true,
+    "estimatedFee": 15000,
+    "estimatedArrivalMinutes": 10,
+    "availableVehicleCount": 3
   }
 }
 ```
+
+**비즈니스 규칙**
+- 해당 시간대에 배차 가능한 택시가 있는지 확인
+- 반려동물 크기에 맞는 차량만 검색
+- 예상 요금은 거리 기반으로 계산
 
 ---
 
@@ -344,16 +348,14 @@ Authorization: Bearer {token}
     "timeSlotId": 1,
     "symptomDescription": "기침을 자주 해요"
   },
-  "taxiReservations": [
+  "taxiRequests": [
     {
-      "petTaxiId": 1,
       "type": "PICKUP",
       "pickupAddress": "서울시 강남구 역삼동 123",
       "dropoffAddress": "강남동물병원",
       "scheduledTime": "2024-01-15T08:30:00"
     },
     {
-      "petTaxiId": 2,
       "type": "RETURN",
       "pickupAddress": "강남동물병원",
       "dropoffAddress": "서울시 강남구 역삼동 123",
@@ -365,10 +367,14 @@ Authorization: Bearer {token}
 
 **비즈니스 규칙**
 - `hospitalReservation`: 필수
-- `taxiReservations`: 선택 (0~2개)
+- `taxiRequests`: 선택 (0~2개)
   - PICKUP: 집 → 병원
   - RETURN: 병원 → 집
 - 택시만 예약은 불가
+- **택시는 시스템이 자동 배차** (petTaxiId 불필요)
+  - 반려동물 크기에 맞는 차량 자동 선택
+  - 해당 시간대 가용한 택시 중 배차
+  - 배차 불가 시 예약 실패
 
 **Response**
 ```json
@@ -379,6 +385,32 @@ Authorization: Bearer {token}
   "result": {
     "reservationId": 1,
     "status": "PENDING_PAYMENT",
+    "hospitalReservation": {
+      "hospitalName": "강남동물병원",
+      "veterinarianName": "김수의",
+      "date": "2024-01-15",
+      "time": "09:00-10:00"
+    },
+    "taxiDispatch": [
+      {
+        "type": "PICKUP",
+        "status": "ASSIGNED",
+        "driverName": "홍길동",
+        "driverPhoneNumber": "010-1234-5678",
+        "vehicleNumber": "서울12가3456",
+        "scheduledTime": "2024-01-15T08:30:00",
+        "estimatedFee": 15000
+      },
+      {
+        "type": "RETURN",
+        "status": "ASSIGNED",
+        "driverName": "김철수",
+        "driverPhoneNumber": "010-2222-3333",
+        "vehicleNumber": "서울34나5678",
+        "scheduledTime": "2024-01-15T11:00:00",
+        "estimatedFee": 10000
+      }
+    ],
     "payment": {
       "totalAmount": 35000,
       "breakdown": {
@@ -428,9 +460,12 @@ Authorization: Bearer {token}
           "date": "2024-01-15",
           "time": "09:00-10:00"
         },
-        "taxiReservations": [
+        "taxiDispatch": [
           {
             "type": "PICKUP",
+            "status": "ASSIGNED",
+            "driverName": "홍길동",
+            "vehicleNumber": "서울12가3456",
             "scheduledTime": "2024-01-15T08:30:00"
           }
         ],
@@ -538,12 +573,21 @@ DELETE /api/v1/admin/time-slots/{id}                      # 타임슬롯 삭제
 ### 7.4 펫택시 관리
 
 ```
-POST   /api/v1/admin/pet-taxis           # 펫택시 등록
-PATCH  /api/v1/admin/pet-taxis/{id}      # 펫택시 수정 (상태 변경 포함)
+POST   /api/v1/admin/pet-taxis           # 펫택시(차량) 등록
+PATCH  /api/v1/admin/pet-taxis/{id}      # 펫택시 수정 (운행 상태 변경 포함)
 DELETE /api/v1/admin/pet-taxis/{id}      # 펫택시 삭제
 ```
 
-### 7.5 예약 관리
+### 7.5 택시 배차 관리
+
+```
+GET    /api/v1/admin/taxi-dispatches                    # 배차 목록 조회
+GET    /api/v1/admin/taxi-dispatches/{id}               # 배차 상세 조회
+PATCH  /api/v1/admin/taxi-dispatches/{id}/status        # 배차 상태 변경
+PATCH  /api/v1/admin/taxi-dispatches/{id}/reassign      # 택시 재배차 (수동)
+```
+
+### 7.6 예약 관리
 
 ```
 GET    /api/v1/admin/reservations                    # 전체 예약 조회
@@ -587,11 +631,20 @@ PATCH  /api/v1/admin/reservations/{id}/status        # 예약 상태 변경
 | CANCELLED | 취소됨 |
 | NO_SHOW | 노쇼 |
 
-### TaxiReservationType (택시 예약 유형)
+### TaxiRequestType (택시 요청 유형)
 | 값 | 설명 |
 |----|------|
 | PICKUP | 픽업 (집 → 병원) |
 | RETURN | 귀가 (병원 → 집) |
+
+### TaxiDispatchStatus (택시 배차 상태)
+| 값 | 설명 |
+|----|------|
+| PENDING | 배차 대기 |
+| ASSIGNED | 배차 완료 |
+| IN_PROGRESS | 운행 중 |
+| COMPLETED | 운행 완료 |
+| CANCELLED | 취소됨 |
 
 ### PaymentStatus (결제 상태)
 | 값 | 설명 |
