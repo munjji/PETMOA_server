@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class PaymentRepositoryImpl implements PaymentRepositoryCustom {
 
+    private static final QPayment payment = QPayment.payment;
+    private static final QReservation reservation = QReservation.reservation;
+
     private final JPAQueryFactory queryFactory;
 
     @Override
     public Payment findByReservationId(Long reservationId) {
-        QPayment payment = QPayment.payment;
-        QReservation reservation = QReservation.reservation;
-
         return queryFactory
                 .selectFrom(payment)
                 .leftJoin(payment.reservation, reservation).fetchJoin()
@@ -27,9 +27,6 @@ public class PaymentRepositoryImpl implements PaymentRepositoryCustom {
 
     @Override
     public Payment findByOrderId(String orderId) {
-        QPayment payment = QPayment.payment;
-        QReservation reservation = QReservation.reservation;
-
         return queryFactory
                 .selectFrom(payment)
                 .leftJoin(payment.reservation, reservation).fetchJoin()
@@ -39,9 +36,6 @@ public class PaymentRepositoryImpl implements PaymentRepositoryCustom {
 
     @Override
     public Payment findByPaymentKey(String paymentKey) {
-        QPayment payment = QPayment.payment;
-        QReservation reservation = QReservation.reservation;
-
         return queryFactory
                 .selectFrom(payment)
                 .leftJoin(payment.reservation, reservation).fetchJoin()

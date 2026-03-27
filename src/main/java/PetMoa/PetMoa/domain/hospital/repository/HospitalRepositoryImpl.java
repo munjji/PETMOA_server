@@ -13,12 +13,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
 
+    private static final QHospital hospital = QHospital.hospital;
+
     private final JPAQueryFactory queryFactory;
 
     @Override
     public List<Hospital> findByNameContaining(String name) {
-        QHospital hospital = QHospital.hospital;
-
         return queryFactory
                 .selectFrom(hospital)
                 .where(hospital.name.containsIgnoreCase(name))
@@ -27,8 +27,6 @@ public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
 
     @Override
     public List<Hospital> findByAddressContaining(String address) {
-        QHospital hospital = QHospital.hospital;
-
         return queryFactory
                 .selectFrom(hospital)
                 .where(hospital.address.containsIgnoreCase(address))
@@ -37,8 +35,6 @@ public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
 
     @Override
     public List<Hospital> findByAvailablePetType(PetType petType) {
-        QHospital hospital = QHospital.hospital;
-
         return queryFactory
                 .selectFrom(hospital)
                 .where(hospital.availablePetTypes.contains(petType))
@@ -50,8 +46,6 @@ public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
         if (latitude == null || longitude == null || radiusKm == null || radiusKm <= 0) {
             return java.util.Collections.emptyList();
         }
-
-        QHospital hospital = QHospital.hospital;
 
         // 하버사인 공식을 사용한 거리 계산
         // 간단한 구현: 위도/경도 범위로 필터링 (정확도는 낮지만 빠름)

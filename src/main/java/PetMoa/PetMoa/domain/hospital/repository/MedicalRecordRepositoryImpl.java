@@ -15,14 +15,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MedicalRecordRepositoryImpl implements MedicalRecordRepositoryCustom {
 
+    private static final QMedicalRecord medicalRecord = QMedicalRecord.medicalRecord;
+    private static final QPet pet = QPet.pet;
+    private static final QHospitalReservation hospitalReservation = QHospitalReservation.hospitalReservation;
+
     private final JPAQueryFactory queryFactory;
 
     @Override
     public List<MedicalRecord> findByPetIdOrderByVisitDateDesc(Long petId) {
-        QMedicalRecord medicalRecord = QMedicalRecord.medicalRecord;
-        QPet pet = QPet.pet;
-        QHospitalReservation hospitalReservation = QHospitalReservation.hospitalReservation;
-
         return queryFactory
                 .selectFrom(medicalRecord)
                 .leftJoin(medicalRecord.pet, pet).fetchJoin()
@@ -34,10 +34,6 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepositoryCusto
 
     @Override
     public List<MedicalRecord> findByPetIdAndDateRange(Long petId, LocalDateTime startDate, LocalDateTime endDate) {
-        QMedicalRecord medicalRecord = QMedicalRecord.medicalRecord;
-        QPet pet = QPet.pet;
-        QHospitalReservation hospitalReservation = QHospitalReservation.hospitalReservation;
-
         return queryFactory
                 .selectFrom(medicalRecord)
                 .leftJoin(medicalRecord.pet, pet).fetchJoin()
@@ -50,10 +46,6 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepositoryCusto
 
     @Override
     public MedicalRecord findByHospitalReservationId(Long hospitalReservationId) {
-        QMedicalRecord medicalRecord = QMedicalRecord.medicalRecord;
-        QPet pet = QPet.pet;
-        QHospitalReservation hospitalReservation = QHospitalReservation.hospitalReservation;
-
         return queryFactory
                 .selectFrom(medicalRecord)
                 .leftJoin(medicalRecord.pet, pet).fetchJoin()

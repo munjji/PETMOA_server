@@ -14,14 +14,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReservationRepositoryImpl implements ReservationRepositoryCustom {
 
+    private static final QReservation reservation = QReservation.reservation;
+    private static final QUser user = QUser.user;
+    private static final QPet pet = QPet.pet;
+
     private final JPAQueryFactory queryFactory;
 
     @Override
     public List<Reservation> findByUserIdWithDetails(Long userId) {
-        QReservation reservation = QReservation.reservation;
-        QUser user = QUser.user;
-        QPet pet = QPet.pet;
-
         return queryFactory
                 .selectFrom(reservation)
                 .leftJoin(reservation.user, user).fetchJoin()
@@ -33,10 +33,6 @@ public class ReservationRepositoryImpl implements ReservationRepositoryCustom {
 
     @Override
     public Reservation findByIdWithDetails(Long reservationId) {
-        QReservation reservation = QReservation.reservation;
-        QUser user = QUser.user;
-        QPet pet = QPet.pet;
-
         return queryFactory
                 .selectFrom(reservation)
                 .leftJoin(reservation.user, user).fetchJoin()

@@ -15,13 +15,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TimeSlotRepositoryImpl implements TimeSlotRepositoryCustom {
 
+    private static final QTimeSlot timeSlot = QTimeSlot.timeSlot;
+    private static final QVeterinarian veterinarian = QVeterinarian.veterinarian;
+
     private final JPAQueryFactory queryFactory;
 
     @Override
     public List<TimeSlot> findByVeterinarianAndDate(Long veterinarianId, LocalDate date) {
-        QTimeSlot timeSlot = QTimeSlot.timeSlot;
-        QVeterinarian veterinarian = QVeterinarian.veterinarian;
-
         return queryFactory
                 .selectFrom(timeSlot)
                 .leftJoin(timeSlot.veterinarian, veterinarian).fetchJoin()
@@ -33,9 +33,6 @@ public class TimeSlotRepositoryImpl implements TimeSlotRepositoryCustom {
 
     @Override
     public List<TimeSlot> findAvailableSlots(Long veterinarianId, LocalDate date) {
-        QTimeSlot timeSlot = QTimeSlot.timeSlot;
-        QVeterinarian veterinarian = QVeterinarian.veterinarian;
-
         return queryFactory
                 .selectFrom(timeSlot)
                 .leftJoin(timeSlot.veterinarian, veterinarian).fetchJoin()
@@ -48,9 +45,6 @@ public class TimeSlotRepositoryImpl implements TimeSlotRepositoryCustom {
 
     @Override
     public TimeSlot findByVeterinarianAndDateTime(Long veterinarianId, LocalDate date, LocalTime startTime) {
-        QTimeSlot timeSlot = QTimeSlot.timeSlot;
-        QVeterinarian veterinarian = QVeterinarian.veterinarian;
-
         return queryFactory
                 .selectFrom(timeSlot)
                 .leftJoin(timeSlot.veterinarian, veterinarian).fetchJoin()
