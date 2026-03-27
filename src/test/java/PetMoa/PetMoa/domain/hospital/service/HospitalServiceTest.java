@@ -3,6 +3,7 @@ package PetMoa.PetMoa.domain.hospital.service;
 import PetMoa.PetMoa.domain.hospital.entity.Hospital;
 import PetMoa.PetMoa.domain.hospital.repository.HospitalRepository;
 import PetMoa.PetMoa.domain.pet.entity.PetType;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -69,7 +70,7 @@ class HospitalServiceTest {
 
             // when & then
             assertThatThrownBy(() -> hospitalService.getHospitalById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("병원을 찾을 수 없습니다");
         }
 

@@ -2,6 +2,7 @@ package PetMoa.PetMoa.domain.hospital.service;
 
 import PetMoa.PetMoa.domain.hospital.entity.TimeSlot;
 import PetMoa.PetMoa.domain.hospital.repository.TimeSlotRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,7 @@ public class TimeSlotService {
 
     public TimeSlot getTimeSlotById(Long id) {
         return timeSlotRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("타임슬롯을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new EntityNotFoundException("타임슬롯을 찾을 수 없습니다. id=" + id));
     }
 
     public List<TimeSlot> getTimeSlotsByVeterinarianAndDate(Long veterinarianId, LocalDate date) {

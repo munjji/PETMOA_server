@@ -4,6 +4,7 @@ import PetMoa.PetMoa.domain.pet.entity.PetSize;
 import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
 import PetMoa.PetMoa.domain.taxi.repository.PetTaxiRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,7 @@ public class PetTaxiService {
 
     public PetTaxi getPetTaxiById(Long id) {
         return petTaxiRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("펫택시를 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new EntityNotFoundException("펫택시를 찾을 수 없습니다. id=" + id));
     }
 
     public List<PetTaxi> getAvailableTaxis() {

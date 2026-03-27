@@ -5,6 +5,7 @@ import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
 import PetMoa.PetMoa.domain.taxi.entity.VehicleSize;
 import PetMoa.PetMoa.domain.taxi.repository.PetTaxiRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -69,7 +70,7 @@ class PetTaxiServiceTest {
 
             // when & then
             assertThatThrownBy(() -> petTaxiService.getPetTaxiById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("펫택시를 찾을 수 없습니다");
         }
 

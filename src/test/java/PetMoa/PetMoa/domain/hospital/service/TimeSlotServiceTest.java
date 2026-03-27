@@ -5,6 +5,7 @@ import PetMoa.PetMoa.domain.hospital.entity.MedicalDepartment;
 import PetMoa.PetMoa.domain.hospital.entity.TimeSlot;
 import PetMoa.PetMoa.domain.hospital.entity.Veterinarian;
 import PetMoa.PetMoa.domain.hospital.repository.TimeSlotRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -86,7 +87,7 @@ class TimeSlotServiceTest {
 
             // when & then
             assertThatThrownBy(() -> timeSlotService.getTimeSlotById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("타임슬롯을 찾을 수 없습니다");
         }
 

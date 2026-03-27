@@ -3,6 +3,7 @@ package PetMoa.PetMoa.domain.hospital.service;
 import PetMoa.PetMoa.domain.hospital.entity.MedicalDepartment;
 import PetMoa.PetMoa.domain.hospital.entity.Veterinarian;
 import PetMoa.PetMoa.domain.hospital.repository.VeterinarianRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,7 +19,7 @@ public class VeterinarianService {
 
     public Veterinarian getVeterinarianById(Long id) {
         return veterinarianRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("수의사를 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new EntityNotFoundException("수의사를 찾을 수 없습니다. id=" + id));
     }
 
     public List<Veterinarian> getVeterinariansByHospitalId(Long hospitalId) {

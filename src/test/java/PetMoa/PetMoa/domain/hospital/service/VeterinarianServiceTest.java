@@ -4,6 +4,7 @@ import PetMoa.PetMoa.domain.hospital.entity.Hospital;
 import PetMoa.PetMoa.domain.hospital.entity.MedicalDepartment;
 import PetMoa.PetMoa.domain.hospital.entity.Veterinarian;
 import PetMoa.PetMoa.domain.hospital.repository.VeterinarianRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -76,7 +77,7 @@ class VeterinarianServiceTest {
 
             // when & then
             assertThatThrownBy(() -> veterinarianService.getVeterinarianById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("수의사를 찾을 수 없습니다");
         }
 

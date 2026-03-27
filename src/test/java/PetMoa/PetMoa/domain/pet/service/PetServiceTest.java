@@ -6,6 +6,7 @@ import PetMoa.PetMoa.domain.pet.entity.PetType;
 import PetMoa.PetMoa.domain.pet.repository.PetRepository;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -87,7 +88,7 @@ class PetServiceTest {
 
             // when & then
             assertThatThrownBy(() -> petService.createPet(999L, "뽀삐", PetType.DOG, PetSize.SMALL, 3, 4.5, "말티즈"))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("사용자를 찾을 수 없습니다");
         }
     }
@@ -118,7 +119,7 @@ class PetServiceTest {
 
             // when & then
             assertThatThrownBy(() -> petService.getPetById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("반려동물을 찾을 수 없습니다");
         }
 
@@ -167,7 +168,7 @@ class PetServiceTest {
 
             // when & then
             assertThatThrownBy(() -> petService.deletePet(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("반려동물을 찾을 수 없습니다");
         }
     }

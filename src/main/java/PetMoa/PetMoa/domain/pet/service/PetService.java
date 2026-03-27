@@ -6,6 +6,7 @@ import PetMoa.PetMoa.domain.pet.entity.PetType;
 import PetMoa.PetMoa.domain.pet.repository.PetRepository;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +24,7 @@ public class PetService {
     @Transactional
     public Pet createPet(Long ownerId, String name, PetType type, PetSize size, Integer age, Double weight, String breed) {
         User owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. id=" + ownerId));
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다. id=" + ownerId));
 
         Pet pet = Pet.builder()
                 .name(name)
@@ -40,7 +41,7 @@ public class PetService {
 
     public Pet getPetById(Long id) {
         return petRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("반려동물을 찾을 수 없습니다. id=" + id));
+                .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + id));
     }
 
     public List<Pet> getPetsByOwnerId(Long ownerId) {

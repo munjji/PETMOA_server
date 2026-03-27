@@ -2,6 +2,7 @@ package PetMoa.PetMoa.domain.user.service;
 
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -101,7 +102,7 @@ class UserServiceTest {
 
             // when & then
             assertThatThrownBy(() -> userService.getUserById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("사용자를 찾을 수 없습니다");
         }
 
@@ -127,7 +128,7 @@ class UserServiceTest {
 
             // when & then
             assertThatThrownBy(() -> userService.getUserByPhoneNumber("010-9999-9999"))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("사용자를 찾을 수 없습니다");
         }
 
@@ -175,7 +176,7 @@ class UserServiceTest {
 
             // when & then
             assertThatThrownBy(() -> userService.deleteUser(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("사용자를 찾을 수 없습니다");
         }
     }
