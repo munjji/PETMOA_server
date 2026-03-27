@@ -1,6 +1,7 @@
 package PetMoa.PetMoa.domain.taxi.service;
 
 import PetMoa.PetMoa.domain.pet.entity.PetSize;
+import PetMoa.PetMoa.domain.reservation.repository.TaxiReservationRepository;
 import PetMoa.PetMoa.domain.taxi.dto.TaxiAvailabilityResponse;
 import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
@@ -20,7 +21,10 @@ import java.util.Set;
 @Transactional(readOnly = true)
 public class PetTaxiQueryService {
 
+    private static final int RESERVATION_BUFFER_HOURS = 1;
+
     private final PetTaxiRepository petTaxiRepository;
+    private final TaxiReservationRepository taxiReservationRepository;
 
     public PetTaxi getPetTaxiById(Long id) {
         return petTaxiRepository.findById(id)
@@ -50,10 +54,30 @@ public class PetTaxiQueryService {
             return TaxiAvailabilityResponse.notAvailable();
         }
 
+        // 해당 시간대에 이미 예약된 택시 제외
+        Set<Long> reservedTaxiIds = getReservedTaxiIds(pickupTime);
+        List<PetTaxi> actuallyAvailableTaxis = availableTaxis.stream()
+                .filter(taxi -> !reservedTaxiIds.contains(taxi.getId()))
+                .toList();
+
+        if (actuallyAvailableTaxis.isEmpty()) {
+            return TaxiAvailabilityResponse.notAvailable();
+        }
+
         int estimatedFee = calculateEstimatedFee(pickupAddress);
         int estimatedMinutes = calculateEstimatedArrivalMinutes(pickupAddress);
 
-        return TaxiAvailabilityResponse.of(availableTaxis.size(), estimatedFee, estimatedMinutes);
+        return TaxiAvailabilityResponse.of(actuallyAvailableTaxis.size(), estimatedFee, estimatedMinutes);
+    }
+
+    /**
+     * 특정 시간대에 이미 예약된 택시 ID 조회
+     * pickupTime 전후 RESERVATION_BUFFER_HOURS 시간 내 예약된 택시
+     */
+    private Set<Long> getReservedTaxiIds(LocalDateTime pickupTime) {
+        LocalDateTime startTime = pickupTime.minusHours(RESERVATION_BUFFER_HOURS);
+        LocalDateTime endTime = pickupTime.plusHours(RESERVATION_BUFFER_HOURS);
+        return taxiReservationRepository.findReservedTaxiIdsBetween(startTime, endTime);
     }
 
     /**
