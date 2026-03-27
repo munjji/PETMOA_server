@@ -138,11 +138,18 @@ com.petcare/
 ### 완료
 - [x] 프로젝트 구조 설계
 - [x] 기술 스택 결정
+- [x] 엔티티 설계 문서 작성 (docs/entity-design.md)
+- [x] 11개 엔티티 구현 (TDD, 164개 테스트 통과)
+  - User, Pet, Hospital, Veterinarian, TimeSlot, MedicalRecord
+  - PetTaxi, Reservation, HospitalReservation, TaxiReservation, Payment
+- [x] Swagger/OpenAPI 설정
+- [x] 코드 리팩토링 (isBlank() 전환, @PreUpdate 중복 제거)
 
 ### 다음 작업
-- [ ] Hospital, Veterinarian 엔티티 구현
-- [ ] 초기 데이터 생성
-- [ ] 병원 조회 API
+- [ ] Repository 레이어 구현 (JPA Repository)
+- [ ] 초기 데이터 생성 (DataLoader)
+- [ ] Service 레이어 구현
+- [ ] Controller 레이어 구현 (REST API)
 
 ---
 
