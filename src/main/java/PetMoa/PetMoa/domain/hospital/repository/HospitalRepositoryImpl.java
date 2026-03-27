@@ -47,6 +47,10 @@ public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
 
     @Override
     public List<Hospital> findNearbyHospitals(Double latitude, Double longitude, Double radiusKm) {
+        if (latitude == null || longitude == null || radiusKm == null || radiusKm <= 0) {
+            return java.util.Collections.emptyList();
+        }
+
         QHospital hospital = QHospital.hospital;
 
         // 하버사인 공식을 사용한 거리 계산
