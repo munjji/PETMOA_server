@@ -28,30 +28,22 @@ public class HospitalController {
     private final VeterinarianQueryService veterinarianQueryService;
     private final TimeSlotQueryService timeSlotQueryService;
 
-    @Operation(summary = "병원 목록 조회", description = "병원 목록을 조회합니다. 이름, 주소, 반려동물 종류로 검색할 수 있습니다.")
+    @Operation(summary = "병원 목록 조회",
+            description = "병원 목록을 조회합니다. 기본: 동물종류 + 위치 기반, 추가: 이름/주소 필터")
     @GetMapping
     public ApiResponse<HospitalListResponse> getHospitals(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String address,
             @RequestParam(required = false) PetType petType,
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
-            @RequestParam(required = false, defaultValue = "5") Double radius) {
+            @RequestParam(required = false, defaultValue = "5") Double radius,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String address) {
 
-        List<Hospital> hospitals;
+        HospitalSearchCondition condition = new HospitalSearchCondition(
+                petType, lat, lng, radius, name, address
+        );
 
-        if (name != null && !name.isBlank()) {
-            hospitals = hospitalQueryService.searchByName(name);
-        } else if (address != null && !address.isBlank()) {
-            hospitals = hospitalQueryService.searchByAddress(address);
-        } else if (petType != null) {
-            hospitals = hospitalQueryService.searchByPetType(petType);
-        } else if (lat != null && lng != null) {
-            hospitals = hospitalQueryService.searchNearby(lat, lng, radius);
-        } else {
-            hospitals = hospitalQueryService.getAllHospitals();
-        }
-
+        List<Hospital> hospitals = hospitalQueryService.searchWithConditions(condition);
         return ApiResponse.onSuccess(HospitalListResponse.from(hospitals));
     }
 

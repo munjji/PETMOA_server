@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.hospital.controller;
 
+import PetMoa.PetMoa.domain.hospital.dto.HospitalSearchCondition;
 import PetMoa.PetMoa.domain.hospital.entity.Hospital;
 import PetMoa.PetMoa.domain.hospital.entity.MedicalDepartment;
 import PetMoa.PetMoa.domain.hospital.entity.TimeSlot;
@@ -26,6 +27,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -89,10 +91,11 @@ class HospitalControllerTest {
     class GetHospitals {
 
         @Test
-        @DisplayName("성공: 병원 목록 조회")
+        @DisplayName("성공: 병원 목록 조회 (조건 없음)")
         void success() throws Exception {
             // given
-            given(hospitalQueryService.getAllHospitals()).willReturn(List.of(testHospital));
+            given(hospitalQueryService.searchWithConditions(any(HospitalSearchCondition.class)))
+                    .willReturn(List.of(testHospital));
 
             // when & then
             mockMvc.perform(get("/api/v1/hospitals"))
@@ -104,14 +107,32 @@ class HospitalControllerTest {
         }
 
         @Test
-        @DisplayName("성공: 이름으로 검색")
-        void successSearchByName() throws Exception {
+        @DisplayName("성공: 동물종류 + 위치 + 이름 복합 검색")
+        void successSearchWithConditions() throws Exception {
             // given
-            given(hospitalQueryService.searchByName("강남")).willReturn(List.of(testHospital));
+            given(hospitalQueryService.searchWithConditions(any(HospitalSearchCondition.class)))
+                    .willReturn(List.of(testHospital));
 
             // when & then
             mockMvc.perform(get("/api/v1/hospitals")
+                            .param("petType", "DOG")
+                            .param("lat", "37.5")
+                            .param("lng", "127.0")
                             .param("name", "강남"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.result.hospitals[0].name").value("강남동물병원"));
+        }
+
+        @Test
+        @DisplayName("성공: 동물종류만 검색")
+        void successSearchByPetType() throws Exception {
+            // given
+            given(hospitalQueryService.searchWithConditions(any(HospitalSearchCondition.class)))
+                    .willReturn(List.of(testHospital));
+
+            // when & then
+            mockMvc.perform(get("/api/v1/hospitals")
+                            .param("petType", "DOG"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.hospitals[0].name").value("강남동물병원"));
         }
