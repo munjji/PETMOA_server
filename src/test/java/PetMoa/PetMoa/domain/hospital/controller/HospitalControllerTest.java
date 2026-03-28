@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -68,6 +69,7 @@ class HospitalControllerTest {
                 .longitude(127.0)
                 .availablePetTypes(Set.of(PetType.DOG, PetType.CAT))
                 .build();
+        ReflectionTestUtils.setField(testHospital, "id", 1L);
 
         testVet = Veterinarian.builder()
                 .name("김수의")
@@ -228,6 +230,18 @@ class HospitalControllerTest {
             mockMvc.perform(get("/api/v1/hospitals/1/veterinarians/999/time-slots")
                             .param("date", "2024-01-15"))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("실패: 다른 병원 소속 수의사")
+        void failVetNotBelongsToHospital() throws Exception {
+            // given - testVet은 hospitalId=1 소속
+            given(veterinarianQueryService.getVeterinarianById(1L)).willReturn(testVet);
+
+            // when & then - hospitalId=999로 접근 시도
+            mockMvc.perform(get("/api/v1/hospitals/999/veterinarians/1/time-slots")
+                            .param("date", "2024-01-15"))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

@@ -71,7 +71,15 @@ public class HospitalController {
             @PathVariable Long vetId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         Veterinarian veterinarian = veterinarianQueryService.getVeterinarianById(vetId);
+        validateVeterinarianBelongsToHospital(veterinarian, hospitalId);
+
         List<TimeSlot> timeSlots = timeSlotQueryService.getTimeSlotsByVeterinarianAndDate(vetId, date);
         return ApiResponse.onSuccess(TimeSlotListResponse.from(date, veterinarian, timeSlots));
+    }
+
+    private void validateVeterinarianBelongsToHospital(Veterinarian veterinarian, Long hospitalId) {
+        if (!veterinarian.getHospital().getId().equals(hospitalId)) {
+            throw new IllegalArgumentException("해당 병원 소속의 수의사가 아닙니다.");
+        }
     }
 }
