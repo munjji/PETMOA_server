@@ -47,7 +47,7 @@ public class PetController {
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long petId,
             @RequestBody PetUpdateRequest request) {
-        Pet pet = petCommandService.updatePet(petId, request);
+        Pet pet = petCommandService.updatePet(userId, petId, request);
         return ApiResponse.onSuccess(PetResponse.from(pet));
     }
 
@@ -56,7 +56,7 @@ public class PetController {
     public ApiResponse<Void> deletePet(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long petId) {
-        petCommandService.deletePet(petId);
+        petCommandService.deletePet(userId, petId);
         return ApiResponse.onSuccess(null);
     }
 }

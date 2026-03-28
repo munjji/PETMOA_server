@@ -36,16 +36,26 @@ public class PetCommandService {
         return petRepository.save(pet);
     }
 
-    public void deletePet(Long id) {
-        Pet pet = petRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + id));
+    public void deletePet(Long userId, Long petId) {
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + petId));
+
+        validateOwnership(userId, pet);
         petRepository.delete(pet);
     }
 
-    public Pet updatePet(Long id, PetUpdateRequest request) {
-        Pet pet = petRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + id));
+    public Pet updatePet(Long userId, Long petId, PetUpdateRequest request) {
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + petId));
+
+        validateOwnership(userId, pet);
         pet.updateInfo(request.name(), request.size(), request.age(), request.weight(), request.breed());
         return pet;
+    }
+
+    private void validateOwnership(Long userId, Pet pet) {
+        if (!pet.getOwner().getId().equals(userId)) {
+            throw new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다.");
+        }
     }
 }

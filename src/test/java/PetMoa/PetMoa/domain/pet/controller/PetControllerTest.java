@@ -182,7 +182,7 @@ class PetControllerTest {
                     .owner(testUser)
                     .build();
 
-            given(petCommandService.updatePet(eq(1L), any(PetUpdateRequest.class)))
+            given(petCommandService.updatePet(eq(1L), eq(1L), any(PetUpdateRequest.class)))
                     .willReturn(updatedPet);
 
             // when & then
@@ -205,7 +205,7 @@ class PetControllerTest {
                     "뽀삐2", PetSize.MEDIUM, 4, 5.0, "말티즈"
             );
 
-            given(petCommandService.updatePet(eq(999L), any(PetUpdateRequest.class)))
+            given(petCommandService.updatePet(eq(1L), eq(999L), any(PetUpdateRequest.class)))
                     .willThrow(new EntityNotFoundException("반려동물을 찾을 수 없습니다."));
 
             // when & then
@@ -214,6 +214,25 @@ class PetControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 반려동물 수정 시도")
+        void failNotOwner() throws Exception {
+            // given
+            PetUpdateRequest request = new PetUpdateRequest(
+                    "뽀삐2", PetSize.MEDIUM, 4, 5.0, "말티즈"
+            );
+
+            given(petCommandService.updatePet(eq(2L), eq(1L), any(PetUpdateRequest.class)))
+                    .willThrow(new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다."));
+
+            // when & then
+            mockMvc.perform(patch("/api/v1/pets/1")
+                            .header("X-User-Id", "2")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
         }
     }
 
@@ -225,7 +244,7 @@ class PetControllerTest {
         @DisplayName("성공: 반려동물 삭제")
         void success() throws Exception {
             // given
-            doNothing().when(petCommandService).deletePet(1L);
+            doNothing().when(petCommandService).deletePet(1L, 1L);
 
             // when & then
             mockMvc.perform(delete("/api/v1/pets/1")
@@ -239,12 +258,25 @@ class PetControllerTest {
         void failPetNotFound() throws Exception {
             // given
             doThrow(new EntityNotFoundException("반려동물을 찾을 수 없습니다."))
-                    .when(petCommandService).deletePet(999L);
+                    .when(petCommandService).deletePet(1L, 999L);
 
             // when & then
             mockMvc.perform(delete("/api/v1/pets/999")
                             .header("X-User-Id", "1"))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 반려동물 삭제 시도")
+        void failNotOwner() throws Exception {
+            // given
+            doThrow(new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다."))
+                    .when(petCommandService).deletePet(2L, 1L);
+
+            // when & then
+            mockMvc.perform(delete("/api/v1/pets/1")
+                            .header("X-User-Id", "2"))
+                    .andExpect(status().isBadRequest());
         }
     }
 }
