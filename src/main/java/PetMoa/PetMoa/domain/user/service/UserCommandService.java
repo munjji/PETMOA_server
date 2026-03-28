@@ -1,6 +1,7 @@
 package PetMoa.PetMoa.domain.user.service;
 
 import PetMoa.PetMoa.domain.user.dto.UserCreateRequest;
+import PetMoa.PetMoa.domain.user.dto.UserUpdateRequest;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -34,5 +35,12 @@ public class UserCommandService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다. id=" + id));
         userRepository.delete(user);
+    }
+
+    public User updateUser(Long id, UserUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다. id=" + id));
+        user.updateInfo(request.phoneNumber(), request.address());
+        return user;
     }
 }

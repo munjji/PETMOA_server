@@ -3,6 +3,7 @@ package PetMoa.PetMoa.global.apiPayload.exception;
 import PetMoa.PetMoa.global.apiPayload.ApiResponse;
 import PetMoa.PetMoa.global.apiPayload.code.ErrorReasonDTO;
 import PetMoa.PetMoa.global.apiPayload.code.status.ErrorStatus;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -65,6 +66,19 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> onThrowException(GeneralException generalException, HttpServletRequest request) {
         ErrorReasonDTO errorReasonHttpStatus = generalException.getErrorReasonHttpStatus();
         return handleExceptionInternal(generalException, errorReasonHttpStatus, null, request);
+    }
+
+    @ExceptionHandler(value = EntityNotFoundException.class)
+    public ResponseEntity<Object> handleEntityNotFoundException(EntityNotFoundException e, WebRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus.MEMBER_NOT_FOUND.getCode(), e.getMessage(), null);
+        return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.NOT_FOUND, request);
+    }
+
+    @ExceptionHandler(value = org.springframework.web.bind.MissingRequestHeaderException.class)
+    public ResponseEntity<Object> handleMissingRequestHeaderException(
+            org.springframework.web.bind.MissingRequestHeaderException e, WebRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus._BAD_REQUEST.getCode(), e.getMessage(), null);
+        return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, request);
     }
 
     private ResponseEntity<Object> handleExceptionInternal(Exception e, ErrorReasonDTO reason, HttpHeaders headers, HttpServletRequest request) {
