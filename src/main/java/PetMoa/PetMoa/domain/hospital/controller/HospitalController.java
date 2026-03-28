@@ -33,14 +33,14 @@ public class HospitalController {
     @GetMapping
     public ApiResponse<HospitalListResponse> getHospitals(
             @RequestParam(required = false) PetType petType,
-            @RequestParam(required = false) Double lat,
-            @RequestParam(required = false) Double lng,
-            @RequestParam(required = false, defaultValue = "5") Double radius,
+            @RequestParam(name = "lat", required = false) Double latitude,
+            @RequestParam(name = "lng", required = false) Double longitude,
+            @RequestParam(name = "radius", required = false, defaultValue = "5") Double radiusKm,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String address) {
 
         HospitalSearchCondition condition = new HospitalSearchCondition(
-                petType, lat, lng, radius, name, address
+                petType, latitude, longitude, radiusKm, name, address
         );
 
         List<Hospital> hospitals = hospitalQueryService.searchWithConditions(condition);
