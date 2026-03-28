@@ -101,7 +101,11 @@ public class TaxiReservation {
     }
 
     // 비즈니스 메서드
-    public boolean isToHospital() {
-        return this.type == TaxiReservationType.TO_HOSPITAL;
+    public boolean isPickup() {
+        return this.type == TaxiReservationType.PICKUP;
+    }
+
+    public boolean isReturn() {
+        return this.type == TaxiReservationType.RETURN;
     }
 }

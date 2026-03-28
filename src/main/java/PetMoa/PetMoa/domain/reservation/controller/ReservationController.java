@@ -1,0 +1,59 @@
+package PetMoa.PetMoa.domain.reservation.controller;
+
+import PetMoa.PetMoa.domain.reservation.dto.*;
+import PetMoa.PetMoa.domain.reservation.entity.Reservation;
+import PetMoa.PetMoa.domain.reservation.service.ReservationCommandService;
+import PetMoa.PetMoa.domain.reservation.service.ReservationQueryService;
+import PetMoa.PetMoa.global.apiPayload.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Tag(name = "Reservation", description = "예약 API")
+@RestController
+@RequestMapping("/api/v1/reservations")
+@RequiredArgsConstructor
+public class ReservationController {
+
+    private final ReservationQueryService reservationQueryService;
+    private final ReservationCommandService reservationCommandService;
+
+    @Operation(summary = "통합 예약 생성", description = "병원 예약 + 택시 예약(선택)을 생성합니다.")
+    @PostMapping
+    public ApiResponse<ReservationResponse> createReservation(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody ReservationCreateRequest request) {
+        Reservation reservation = reservationCommandService.createReservation(userId, request);
+        return ApiResponse.onSuccess(ReservationResponse.from(reservation));
+    }
+
+    @Operation(summary = "내 예약 목록 조회", description = "현재 로그인한 사용자의 예약 목록을 조회합니다.")
+    @GetMapping
+    public ApiResponse<ReservationListResponse> getMyReservations(
+            @RequestHeader("X-User-Id") Long userId) {
+        List<Reservation> reservations = reservationQueryService.getReservationsByUserId(userId);
+        return ApiResponse.onSuccess(ReservationListResponse.from(reservations));
+    }
+
+    @Operation(summary = "예약 상세 조회", description = "예약 상세 정보를 조회합니다.")
+    @GetMapping("/{reservationId}")
+    public ApiResponse<ReservationResponse> getReservation(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long reservationId) {
+        Reservation reservation = reservationQueryService.getReservationByIdAndUserId(reservationId, userId);
+        return ApiResponse.onSuccess(ReservationResponse.from(reservation));
+    }
+
+    @Operation(summary = "예약 취소", description = "예약을 취소합니다. 환불 정책이 적용됩니다.")
+    @PostMapping("/{reservationId}/cancel")
+    public ApiResponse<ReservationCancelResponse> cancelReservation(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long reservationId) {
+        Reservation reservation = reservationCommandService.cancelReservation(userId, reservationId);
+        int refundRate = reservationCommandService.calculateRefundRate(reservation);
+        return ApiResponse.onSuccess(ReservationCancelResponse.from(reservation, refundRate));
+    }
+}

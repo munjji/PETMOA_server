@@ -27,13 +27,11 @@ public class Reservation {
     @JoinColumn(name = "pet_id", nullable = false)
     private Pet pet;
 
-    // HospitalReservation은 Task #8에서 구현 예정
-    @Transient
-    private Object hospitalReservation;
+    @OneToOne(mappedBy = "reservation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private HospitalReservation hospitalReservation;
 
-    // TaxiReservation은 Task #9에서 구현 예정
-    @Transient
-    private List<Object> taxiReservations = new ArrayList<>();
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<TaxiReservation> taxiReservations = new ArrayList<>();
 
     // Payment는 Task #10에서 구현 예정
     @Transient
