@@ -1,0 +1,85 @@
+package PetMoa.PetMoa.domain.hospital.controller;
+
+import PetMoa.PetMoa.domain.hospital.dto.*;
+import PetMoa.PetMoa.domain.hospital.entity.Hospital;
+import PetMoa.PetMoa.domain.hospital.entity.TimeSlot;
+import PetMoa.PetMoa.domain.hospital.entity.Veterinarian;
+import PetMoa.PetMoa.domain.hospital.service.HospitalQueryService;
+import PetMoa.PetMoa.domain.hospital.service.TimeSlotQueryService;
+import PetMoa.PetMoa.domain.hospital.service.VeterinarianQueryService;
+import PetMoa.PetMoa.domain.pet.entity.PetType;
+import PetMoa.PetMoa.global.apiPayload.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@Tag(name = "Hospital", description = "병원 API")
+@RestController
+@RequestMapping("/api/v1/hospitals")
+@RequiredArgsConstructor
+public class HospitalController {
+
+    private final HospitalQueryService hospitalQueryService;
+    private final VeterinarianQueryService veterinarianQueryService;
+    private final TimeSlotQueryService timeSlotQueryService;
+
+    @Operation(summary = "병원 목록 조회",
+            description = "병원 목록을 조회합니다. 기본: 동물종류 + 위치 기반, 추가: 이름/주소 필터")
+    @GetMapping
+    public ApiResponse<HospitalListResponse> getHospitals(
+            @RequestParam(required = false) PetType petType,
+            @RequestParam(name = "lat", required = false) Double latitude,
+            @RequestParam(name = "lng", required = false) Double longitude,
+            @RequestParam(name = "radius", required = false, defaultValue = "5") Double radiusKm,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String address) {
+
+        HospitalSearchCondition condition = new HospitalSearchCondition(
+                petType, latitude, longitude, radiusKm, name, address
+        );
+
+        List<Hospital> hospitals = hospitalQueryService.searchWithConditions(condition);
+        return ApiResponse.onSuccess(HospitalListResponse.from(hospitals));
+    }
+
+    @Operation(summary = "병원 상세 조회", description = "병원 상세 정보와 수의사 목록을 조회합니다.")
+    @GetMapping("/{hospitalId}")
+    public ApiResponse<HospitalDetailResponse> getHospitalDetail(
+            @PathVariable Long hospitalId) {
+        Hospital hospital = hospitalQueryService.getHospitalById(hospitalId);
+        List<Veterinarian> veterinarians = veterinarianQueryService.getVeterinariansByHospitalId(hospitalId);
+        return ApiResponse.onSuccess(HospitalDetailResponse.from(hospital, veterinarians));
+    }
+
+    @Operation(summary = "수의사 목록 조회", description = "해당 병원의 수의사 목록을 조회합니다.")
+    @GetMapping("/{hospitalId}/veterinarians")
+    public ApiResponse<VeterinarianListResponse> getVeterinarians(
+            @PathVariable Long hospitalId) {
+        List<Veterinarian> veterinarians = veterinarianQueryService.getVeterinariansByHospitalId(hospitalId);
+        return ApiResponse.onSuccess(VeterinarianListResponse.from(veterinarians));
+    }
+
+    @Operation(summary = "수의사 예약 가능 시간 조회", description = "특정 날짜에 해당 수의사의 예약 가능한 시간대를 조회합니다.")
+    @GetMapping("/{hospitalId}/veterinarians/{vetId}/time-slots")
+    public ApiResponse<TimeSlotListResponse> getTimeSlots(
+            @PathVariable Long hospitalId,
+            @PathVariable Long vetId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        Veterinarian veterinarian = veterinarianQueryService.getVeterinarianById(vetId);
+        validateVeterinarianBelongsToHospital(veterinarian, hospitalId);
+
+        List<TimeSlot> timeSlots = timeSlotQueryService.getTimeSlotsByVeterinarianAndDate(vetId, date);
+        return ApiResponse.onSuccess(TimeSlotListResponse.from(date, veterinarian, timeSlots));
+    }
+
+    private void validateVeterinarianBelongsToHospital(Veterinarian veterinarian, Long hospitalId) {
+        if (!veterinarian.getHospital().getId().equals(hospitalId)) {
+            throw new IllegalArgumentException("해당 병원 소속의 수의사가 아닙니다.");
+        }
+    }
+}

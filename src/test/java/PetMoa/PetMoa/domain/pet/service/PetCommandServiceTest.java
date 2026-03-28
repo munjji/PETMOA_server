@@ -1,6 +1,7 @@
 package PetMoa.PetMoa.domain.pet.service;
 
 import PetMoa.PetMoa.domain.pet.dto.PetCreateRequest;
+import PetMoa.PetMoa.domain.pet.dto.PetUpdateRequest;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.entity.PetSize;
 import PetMoa.PetMoa.domain.pet.entity.PetType;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -47,6 +49,7 @@ class PetCommandServiceTest {
                 .phoneNumber("010-1234-5678")
                 .address("서울시 강남구")
                 .build();
+        ReflectionTestUtils.setField(testOwner, "id", 1L);
 
         testPet = Pet.builder()
                 .name("뽀삐")
@@ -57,6 +60,7 @@ class PetCommandServiceTest {
                 .breed("말티즈")
                 .owner(testOwner)
                 .build();
+        ReflectionTestUtils.setField(testPet, "id", 1L);
     }
 
     @Nested
@@ -122,7 +126,7 @@ class PetCommandServiceTest {
             given(petRepository.findById(1L)).willReturn(Optional.of(testPet));
 
             // when
-            petCommandService.deletePet(1L);
+            petCommandService.deletePet(1L, 1L);
 
             // then
             verify(petRepository).delete(testPet);
@@ -135,9 +139,67 @@ class PetCommandServiceTest {
             given(petRepository.findById(999L)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> petCommandService.deletePet(999L))
+            assertThatThrownBy(() -> petCommandService.deletePet(1L, 999L))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("반려동물을 찾을 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 반려동물 삭제 시도")
+        void deletePet_NotOwner() {
+            // given
+            given(petRepository.findById(1L)).willReturn(Optional.of(testPet));
+
+            // when & then
+            assertThatThrownBy(() -> petCommandService.deletePet(999L, 1L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("해당 반려동물의 소유자가 아닙니다");
+        }
+    }
+
+    @Nested
+    @DisplayName("반려동물 수정")
+    class UpdatePet {
+
+        @Test
+        @DisplayName("성공: 반려동물 정보 수정")
+        void updatePet_Success() {
+            // given
+            PetUpdateRequest request = new PetUpdateRequest("뽀삐2", PetSize.MEDIUM, 4, 5.0, "푸들");
+            given(petRepository.findById(1L)).willReturn(Optional.of(testPet));
+
+            // when
+            Pet result = petCommandService.updatePet(1L, 1L, request);
+
+            // then
+            assertThat(result.getName()).isEqualTo("뽀삐2");
+            assertThat(result.getSize()).isEqualTo(PetSize.MEDIUM);
+        }
+
+        @Test
+        @DisplayName("실패: 존재하지 않는 반려동물 수정")
+        void updatePet_NotFound() {
+            // given
+            PetUpdateRequest request = new PetUpdateRequest("뽀삐2", PetSize.MEDIUM, 4, 5.0, "푸들");
+            given(petRepository.findById(999L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> petCommandService.updatePet(1L, 999L, request))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("반려동물을 찾을 수 없습니다");
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 반려동물 수정 시도")
+        void updatePet_NotOwner() {
+            // given
+            PetUpdateRequest request = new PetUpdateRequest("뽀삐2", PetSize.MEDIUM, 4, 5.0, "푸들");
+            given(petRepository.findById(1L)).willReturn(Optional.of(testPet));
+
+            // when & then
+            assertThatThrownBy(() -> petCommandService.updatePet(999L, 1L, request))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("해당 반려동물의 소유자가 아닙니다");
         }
     }
 }

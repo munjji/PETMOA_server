@@ -1,8 +1,10 @@
 package PetMoa.PetMoa.domain.hospital.repository;
 
+import PetMoa.PetMoa.domain.hospital.dto.HospitalSearchCondition;
 import PetMoa.PetMoa.domain.hospital.entity.Hospital;
 import PetMoa.PetMoa.domain.hospital.entity.QHospital;
 import PetMoa.PetMoa.domain.pet.entity.PetType;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -61,6 +63,43 @@ public class HospitalRepositoryImpl implements HospitalRepositoryCustom {
                         .and(hospital.longitude.isNotNull())
                         .and(hospital.latitude.between(latitude - latDiff, latitude + latDiff))
                         .and(hospital.longitude.between(longitude - lonDiff, longitude + lonDiff)))
+                .fetch();
+    }
+
+    @Override
+    public List<Hospital> searchWithConditions(HospitalSearchCondition condition) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        // 기본 조건 1: 동물 종류
+        if (condition.petType() != null) {
+            builder.and(hospital.availablePetTypes.contains(condition.petType()));
+        }
+
+        // 기본 조건 2: 위치 기반
+        if (condition.hasLocation()) {
+            double radiusKm = condition.getRadiusOrDefault();
+            double latDiff = radiusKm / KILOMETERS_PER_DEGREE_LATITUDE;
+            double lonDiff = radiusKm / (KILOMETERS_PER_DEGREE_LATITUDE * Math.cos(Math.toRadians(condition.latitude())));
+
+            builder.and(hospital.latitude.isNotNull())
+                    .and(hospital.longitude.isNotNull())
+                    .and(hospital.latitude.between(condition.latitude() - latDiff, condition.latitude() + latDiff))
+                    .and(hospital.longitude.between(condition.longitude() - lonDiff, condition.longitude() + lonDiff));
+        }
+
+        // 추가 필터: 이름 검색
+        if (condition.hasName()) {
+            builder.and(hospital.name.containsIgnoreCase(condition.name()));
+        }
+
+        // 추가 필터: 주소 검색
+        if (condition.hasAddress()) {
+            builder.and(hospital.address.containsIgnoreCase(condition.address()));
+        }
+
+        return queryFactory
+                .selectFrom(hospital)
+                .where(builder)
                 .fetch();
     }
 }

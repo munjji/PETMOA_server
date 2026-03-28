@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.hospital.service;
 
+import PetMoa.PetMoa.domain.hospital.dto.HospitalSearchCondition;
 import PetMoa.PetMoa.domain.hospital.entity.Hospital;
 import PetMoa.PetMoa.domain.hospital.repository.HospitalRepository;
 import PetMoa.PetMoa.domain.pet.entity.PetType;
@@ -40,5 +41,9 @@ public class HospitalQueryService {
 
     public List<Hospital> searchNearby(Double latitude, Double longitude, Double radiusKm) {
         return hospitalRepository.findNearbyHospitals(latitude, longitude, radiusKm);
+    }
+
+    public List<Hospital> searchWithConditions(HospitalSearchCondition condition) {
+        return hospitalRepository.searchWithConditions(condition);
     }
 }

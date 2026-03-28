@@ -87,6 +87,19 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // 정보 수정
+    public void updateInfo(String phoneNumber, String address) {
+        if (phoneNumber != null && !phoneNumber.isBlank()) {
+            if (!PHONE_PATTERN.matcher(phoneNumber).matches()) {
+                throw new IllegalArgumentException("전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678 또는 01012345678)");
+            }
+            this.phoneNumber = phoneNumber;
+        }
+        if (address != null && !address.isBlank()) {
+            this.address = address;
+        }
+    }
+
     // 연관관계 편의 메서드
     public void addPet(Pet pet) {
         this.pets.add(pet);
