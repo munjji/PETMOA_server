@@ -86,4 +86,28 @@ public class Pet {
             throw new IllegalArgumentException("몸무게는 0보다 커야 합니다.");
         }
     }
+
+    public void updateInfo(String name, PetSize size, Integer age, Double weight, String breed) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+        if (size != null) {
+            this.size = size;
+        }
+        if (age != null) {
+            if (age < 0) {
+                throw new IllegalArgumentException("나이는 0 이상이어야 합니다.");
+            }
+            this.age = age;
+        }
+        if (weight != null) {
+            if (weight <= 0) {
+                throw new IllegalArgumentException("몸무게는 0보다 커야 합니다.");
+            }
+            this.weight = weight;
+        }
+        if (breed != null) {
+            this.breed = breed;
+        }
+    }
 }

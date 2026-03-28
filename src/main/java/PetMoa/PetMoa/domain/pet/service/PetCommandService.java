@@ -1,6 +1,7 @@
 package PetMoa.PetMoa.domain.pet.service;
 
 import PetMoa.PetMoa.domain.pet.dto.PetCreateRequest;
+import PetMoa.PetMoa.domain.pet.dto.PetUpdateRequest;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.repository.PetRepository;
 import PetMoa.PetMoa.domain.user.entity.User;
@@ -39,5 +40,12 @@ public class PetCommandService {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + id));
         petRepository.delete(pet);
+    }
+
+    public Pet updatePet(Long id, PetUpdateRequest request) {
+        Pet pet = petRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("반려동물을 찾을 수 없습니다. id=" + id));
+        pet.updateInfo(request.name(), request.size(), request.age(), request.weight(), request.breed());
+        return pet;
     }
 }
