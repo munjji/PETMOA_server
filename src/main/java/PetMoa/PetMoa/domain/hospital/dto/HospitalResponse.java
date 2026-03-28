@@ -16,16 +16,7 @@ public record HospitalResponse(
         Double distance
 ) {
     public static HospitalResponse from(Hospital hospital) {
-        return new HospitalResponse(
-                hospital.getId(),
-                hospital.getName(),
-                hospital.getAddress(),
-                hospital.getPhoneNumber(),
-                hospital.getLatitude(),
-                hospital.getLongitude(),
-                hospital.getAvailablePetTypes(),
-                null
-        );
+        return from(hospital, null);
     }
 
     public static HospitalResponse from(Hospital hospital, Double distance) {

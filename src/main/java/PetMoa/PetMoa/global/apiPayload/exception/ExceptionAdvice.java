@@ -70,7 +70,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(value = EntityNotFoundException.class)
     public ResponseEntity<Object> handleEntityNotFoundException(EntityNotFoundException e, WebRequest request) {
-        ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus.MEMBER_NOT_FOUND.getCode(), e.getMessage(), null);
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus._NOT_FOUND.getCode(), e.getMessage(), null);
         return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.NOT_FOUND, request);
     }
 
