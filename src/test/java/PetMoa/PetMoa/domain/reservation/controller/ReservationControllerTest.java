@@ -11,7 +11,7 @@ import PetMoa.PetMoa.domain.reservation.dto.HospitalReservationRequest;
 import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
 import PetMoa.PetMoa.domain.reservation.dto.TaxiRequest;
 import PetMoa.PetMoa.domain.reservation.entity.*;
-import PetMoa.PetMoa.domain.reservation.service.ReservationCommandService;
+import PetMoa.PetMoa.domain.reservation.service.ReservationFacade;
 import PetMoa.PetMoa.domain.reservation.service.ReservationQueryService;
 import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
@@ -56,7 +56,7 @@ class ReservationControllerTest {
     private ReservationQueryService reservationQueryService;
 
     @Mock
-    private ReservationCommandService reservationCommandService;
+    private ReservationFacade reservationFacade;
 
     @InjectMocks
     private ReservationController reservationController;
@@ -165,7 +165,7 @@ class ReservationControllerTest {
                     null
             );
 
-            given(reservationCommandService.createReservation(eq(1L), any(ReservationCreateRequest.class)))
+            given(reservationFacade.createReservation(eq(1L), any(ReservationCreateRequest.class)))
                     .willReturn(testReservation);
 
             // when & then
@@ -190,7 +190,7 @@ class ReservationControllerTest {
                     null
             );
 
-            given(reservationCommandService.createReservation(eq(1L), any(ReservationCreateRequest.class)))
+            given(reservationFacade.createReservation(eq(1L), any(ReservationCreateRequest.class)))
                     .willThrow(new EntityNotFoundException("타임슬롯을 찾을 수 없습니다."));
 
             // when & then
@@ -266,9 +266,9 @@ class ReservationControllerTest {
         void success() throws Exception {
             // given
             testReservation.cancel();
-            given(reservationCommandService.cancelReservation(1L, 1L))
+            given(reservationFacade.cancelReservation(1L, 1L))
                     .willReturn(testReservation);
-            given(reservationCommandService.calculateRefundRate(testReservation))
+            given(reservationFacade.calculateRefundRate(testReservation))
                     .willReturn(100);
 
             // when & then
@@ -285,7 +285,7 @@ class ReservationControllerTest {
         @DisplayName("실패: 존재하지 않는 예약")
         void failNotFound() throws Exception {
             // given
-            given(reservationCommandService.cancelReservation(1L, 999L))
+            given(reservationFacade.cancelReservation(1L, 999L))
                     .willThrow(new EntityNotFoundException("예약을 찾을 수 없습니다."));
 
             // when & then

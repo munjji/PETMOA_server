@@ -2,7 +2,7 @@ package PetMoa.PetMoa.domain.reservation.controller;
 
 import PetMoa.PetMoa.domain.reservation.dto.*;
 import PetMoa.PetMoa.domain.reservation.entity.Reservation;
-import PetMoa.PetMoa.domain.reservation.service.ReservationCommandService;
+import PetMoa.PetMoa.domain.reservation.service.ReservationFacade;
 import PetMoa.PetMoa.domain.reservation.service.ReservationQueryService;
 import PetMoa.PetMoa.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,14 +19,14 @@ import java.util.List;
 public class ReservationController {
 
     private final ReservationQueryService reservationQueryService;
-    private final ReservationCommandService reservationCommandService;
+    private final ReservationFacade reservationFacade;
 
     @Operation(summary = "통합 예약 생성", description = "병원 예약 + 택시 예약(선택)을 생성합니다.")
     @PostMapping
     public ApiResponse<ReservationResponse> createReservation(
             @RequestHeader("X-User-Id") Long userId,
             @RequestBody ReservationCreateRequest request) {
-        Reservation reservation = reservationCommandService.createReservation(userId, request);
+        Reservation reservation = reservationFacade.createReservation(userId, request);
         return ApiResponse.onSuccess(ReservationResponse.from(reservation));
     }
 
@@ -52,8 +52,8 @@ public class ReservationController {
     public ApiResponse<ReservationCancelResponse> cancelReservation(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long reservationId) {
-        Reservation reservation = reservationCommandService.cancelReservation(userId, reservationId);
-        int refundRate = reservationCommandService.calculateRefundRate(reservation);
+        Reservation reservation = reservationFacade.cancelReservation(userId, reservationId);
+        int refundRate = reservationFacade.calculateRefundRate(reservation);
         return ApiResponse.onSuccess(ReservationCancelResponse.from(reservation, refundRate));
     }
 }
