@@ -36,6 +36,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -51,6 +54,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @Testcontainers
 class ReservationConcurrencyTest {
+
+    private static final Logger log = LoggerFactory.getLogger(ReservationConcurrencyTest.class);
 
     @Container
     static MySQLContainer<?> mysql = new MySQLContainer<>(DockerImageName.parse("mysql:8.0"))
@@ -247,7 +252,8 @@ class ReservationConcurrencyTest {
                             null
                     );
                     reservationFacade.createReservation(users.get(index).getId(), request);
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    log.debug("예약 실패 - index: {}, 사유: {}", index, e.getMessage());
                 } finally {
                     latch.countDown();
                 }
