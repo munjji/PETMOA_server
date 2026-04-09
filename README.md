@@ -19,15 +19,15 @@
 
 ## 기술 스택
 
-| 분류 | 기술 |
-|-----|-----|
-| Language | Java 17 |
-| Framework | Spring Boot 4.0 |
-| Database | MySQL 8, Redis 7 |
-| ORM | Spring Data JPA, QueryDSL |
+| 분류 | 기술                          |
+|-----|-----------------------------|
+| Language | Java 17                     |
+| Framework | Spring Boot 3.x             |
+| Database | MySQL 8, Redis 7            |
+| ORM | Spring Data JPA, QueryDSL   |
 | Docs | Swagger (SpringDoc OpenAPI) |
-| Build | Gradle |
-| Test | JUnit 5, Testcontainers |
+| Build | Gradle                      |
+| Test | JUnit 5, Testcontainers     |
 
 ---
 

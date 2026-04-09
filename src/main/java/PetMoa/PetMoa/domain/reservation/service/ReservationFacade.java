@@ -1,6 +1,7 @@
 package PetMoa.PetMoa.domain.reservation.service;
 
 import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
+import PetMoa.PetMoa.domain.reservation.entity.HospitalReservation;
 import PetMoa.PetMoa.domain.reservation.entity.Reservation;
 import PetMoa.PetMoa.global.lock.DistributedLockExecutor;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 public class ReservationFacade {
 
     private final ReservationCommandService reservationCommandService;
+    private final ReservationQueryService reservationQueryService;
     private final DistributedLockExecutor distributedLockExecutor;
 
     private static final String TIMESLOT_LOCK_PREFIX = "lock:timeslot:";
@@ -29,7 +31,21 @@ public class ReservationFacade {
     }
 
     public Reservation cancelReservation(Long userId, Long reservationId) {
-        return reservationCommandService.cancelReservation(userId, reservationId);
+        Reservation reservation = reservationQueryService.getReservationByIdAndUserId(reservationId, userId);
+        HospitalReservation hospitalReservation = reservation.getHospitalReservation();
+
+        if (hospitalReservation == null) {
+            return reservationCommandService.cancelReservation(userId, reservationId);
+        }
+
+        Long timeSlotId = hospitalReservation.getTimeSlot().getId();
+        String lockKey = TIMESLOT_LOCK_PREFIX + timeSlotId;
+
+        log.debug("예약 취소 시도 - userId: {}, reservationId: {}, timeSlotId: {}", userId, reservationId, timeSlotId);
+
+        return distributedLockExecutor.executeWithLock(lockKey, () -> {
+            return reservationCommandService.cancelReservation(userId, reservationId);
+        });
     }
 
     public int calculateRefundRate(Reservation reservation) {
