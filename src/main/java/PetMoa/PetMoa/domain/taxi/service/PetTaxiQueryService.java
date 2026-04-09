@@ -41,6 +41,25 @@ public class PetTaxiQueryService {
     }
 
     /**
+     * 특정 시간대에 배차 가능한 택시 조회 (크기 조건 + 스케줄 조건)
+     * @param petSize 반려동물 크기
+     * @param pickupTime 픽업 희망 시간
+     * @return 해당 시간대에 배차 가능한 택시 목록
+     */
+    public List<PetTaxi> getAvailableTaxisForPetSizeAndTime(PetSize petSize, LocalDateTime pickupTime) {
+        List<PetTaxi> availableTaxis = getAvailableTaxisForPetSize(petSize);
+
+        if (availableTaxis.isEmpty()) {
+            return availableTaxis;
+        }
+
+        Set<Long> reservedTaxiIds = getReservedTaxiIds(pickupTime);
+        return availableTaxis.stream()
+                .filter(taxi -> !reservedTaxiIds.contains(taxi.getId()))
+                .toList();
+    }
+
+    /**
      * 펫택시 이용 가능 여부 확인 (호출 방식)
      * @param petSize 반려동물 크기
      * @param pickupTime 픽업 희망 시간

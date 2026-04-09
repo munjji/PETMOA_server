@@ -138,14 +138,12 @@ public class ReservationCommandService {
     }
 
     private PetTaxi assignTaxi(Pet pet, LocalDateTime pickupTime) {
-        List<PetTaxi> availableTaxis = petTaxiQueryService.getAvailableTaxisForPetSize(pet.getSize());
+        List<PetTaxi> availableTaxis = petTaxiQueryService.getAvailableTaxisForPetSizeAndTime(pet.getSize(), pickupTime);
 
         if (availableTaxis.isEmpty()) {
-            throw new IllegalStateException("배차 가능한 택시가 없습니다.");
+            throw new IllegalStateException("해당 시간대에 배차 가능한 택시가 없습니다.");
         }
 
-        // TODO: 실제로는 pickupTime에 이미 예약된 택시를 제외해야 함
-        // 현재는 첫 번째 가용 택시 배차
         return availableTaxis.get(0);
     }
 
