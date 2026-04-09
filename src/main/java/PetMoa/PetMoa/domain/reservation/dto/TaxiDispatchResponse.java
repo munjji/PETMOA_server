@@ -1,13 +1,14 @@
 package PetMoa.PetMoa.domain.reservation.dto;
 
 import PetMoa.PetMoa.domain.reservation.entity.TaxiReservation;
+import PetMoa.PetMoa.domain.reservation.entity.TaxiReservationStatus;
 import PetMoa.PetMoa.domain.reservation.entity.TaxiReservationType;
 
 import java.time.LocalDateTime;
 
 public record TaxiDispatchResponse(
         TaxiReservationType type,
-        String status,
+        TaxiReservationStatus status,
         String driverName,
         String driverPhoneNumber,
         String vehicleNumber,
@@ -17,7 +18,7 @@ public record TaxiDispatchResponse(
     public static TaxiDispatchResponse from(TaxiReservation tr) {
         return new TaxiDispatchResponse(
                 tr.getType(),
-                "ASSIGNED",
+                tr.getStatus(),
                 tr.getTaxi().getDriverName(),
                 tr.getTaxi().getDriverPhoneNumber(),
                 tr.getTaxi().getLicensePlate(),

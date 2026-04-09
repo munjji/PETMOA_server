@@ -41,6 +41,10 @@ public class TaxiReservation {
     @Column(length = 20)
     private TaxiReservationType type;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TaxiReservationStatus status;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -60,6 +64,7 @@ public class TaxiReservation {
         this.distance = distance;
         this.fare = (fare != null) ? fare : calculateFare(distance);
         this.type = type;
+        this.status = TaxiReservationStatus.ASSIGNED;
         this.createdAt = LocalDateTime.now();
     }
 
@@ -107,5 +112,33 @@ public class TaxiReservation {
 
     public boolean isReturn() {
         return this.type == TaxiReservationType.RETURN;
+    }
+
+    public void pickUp() {
+        if (this.status != TaxiReservationStatus.ASSIGNED) {
+            throw new IllegalStateException("배차 완료 상태에서만 픽업할 수 있습니다.");
+        }
+        this.status = TaxiReservationStatus.PICKED_UP;
+    }
+
+    public void startRide() {
+        if (this.status != TaxiReservationStatus.PICKED_UP) {
+            throw new IllegalStateException("픽업 완료 상태에서만 운행을 시작할 수 있습니다.");
+        }
+        this.status = TaxiReservationStatus.IN_PROGRESS;
+    }
+
+    public void complete() {
+        if (this.status != TaxiReservationStatus.IN_PROGRESS) {
+            throw new IllegalStateException("운행 중 상태에서만 완료 처리할 수 있습니다.");
+        }
+        this.status = TaxiReservationStatus.COMPLETED;
+    }
+
+    public void cancel() {
+        if (this.status == TaxiReservationStatus.COMPLETED || this.status == TaxiReservationStatus.CANCELLED) {
+            throw new IllegalStateException("이미 완료되었거나 취소된 배차입니다.");
+        }
+        this.status = TaxiReservationStatus.CANCELLED;
     }
 }

@@ -15,7 +15,7 @@ public record ReservationCancelResponse(
     ) {}
 
     public static ReservationCancelResponse from(Reservation reservation, int refundRate) {
-        int totalAmount = calculateTotalAmount(reservation);
+        int totalAmount = reservation.calculateTotalAmount();
         int refundAmount = totalAmount * refundRate / 100;
 
         String reason = switch (refundRate) {
@@ -29,21 +29,5 @@ public record ReservationCancelResponse(
                 reservation.getStatus(),
                 new RefundInfo(refundAmount, refundRate, reason)
         );
-    }
-
-    private static int calculateTotalAmount(Reservation reservation) {
-        int total = 0;
-
-        if (reservation.getHospitalReservation() != null) {
-            total += reservation.getHospitalReservation().getDepositAmount();
-        }
-
-        for (var taxi : reservation.getTaxiReservations()) {
-            if (taxi.getFare() != null) {
-                total += taxi.getFare();
-            }
-        }
-
-        return total;
     }
 }

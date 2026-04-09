@@ -107,6 +107,22 @@ public class Reservation {
         return this.status == ReservationStatus.PENDING || this.status == ReservationStatus.CONFIRMED;
     }
 
+    public int calculateTotalAmount() {
+        int total = 0;
+
+        if (this.hospitalReservation != null) {
+            total += this.hospitalReservation.getDepositAmount();
+        }
+
+        for (TaxiReservation taxi : this.taxiReservations) {
+            if (taxi.getFare() != null) {
+                total += taxi.getFare();
+            }
+        }
+
+        return total;
+    }
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
