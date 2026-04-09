@@ -93,6 +93,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentException(
+            PaymentException e, HttpServletRequest request) {
+        log.warn("PaymentException: [{}] {}", e.getErrorCode(), e.getMessage());
+
+        ErrorResponse response = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                e.getErrorCode(),
+                e.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(LockAcquisitionException.class)
     public ResponseEntity<ErrorResponse> handleLockAcquisitionException(
             LockAcquisitionException e, HttpServletRequest request) {

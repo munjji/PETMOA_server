@@ -4,6 +4,7 @@ import PetMoa.PetMoa.global.apiPayload.ApiResponse;
 import PetMoa.PetMoa.global.apiPayload.code.ErrorReasonDTO;
 import PetMoa.PetMoa.global.apiPayload.code.status.ErrorStatus;
 import PetMoa.PetMoa.global.exception.ForbiddenException;
+import PetMoa.PetMoa.global.exception.PaymentException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
@@ -92,6 +93,12 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleForbiddenException(ForbiddenException e, WebRequest request) {
         ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus._FORBIDDEN.getCode(), e.getMessage(), null);
         return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.FORBIDDEN, request);
+    }
+
+    @ExceptionHandler(value = PaymentException.class)
+    public ResponseEntity<Object> handlePaymentException(PaymentException e, WebRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(e.getErrorCode(), e.getMessage(), null);
+        return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, request);
     }
 
     private ResponseEntity<Object> handleExceptionInternal(Exception e, ErrorReasonDTO reason, HttpHeaders headers, HttpServletRequest request) {
