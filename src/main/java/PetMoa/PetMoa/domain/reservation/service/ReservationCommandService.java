@@ -4,6 +4,7 @@ import PetMoa.PetMoa.domain.hospital.entity.TimeSlot;
 import PetMoa.PetMoa.domain.hospital.service.TimeSlotQueryService;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.service.PetQueryService;
+import PetMoa.PetMoa.domain.reservation.dto.CancellationResult;
 import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
 import PetMoa.PetMoa.domain.reservation.dto.TaxiRequest;
 import PetMoa.PetMoa.domain.reservation.entity.*;
@@ -92,7 +93,7 @@ public class ReservationCommandService {
         return reservationRepository.findByIdWithDetails(reservation.getId());
     }
 
-    public Reservation cancelReservation(Long userId, Long reservationId) {
+    public CancellationResult cancelReservation(Long userId, Long reservationId) {
         Reservation reservation = reservationRepository.findByIdWithDetails(reservationId);
         if (reservation == null) {
             throw new EntityNotFoundException("예약을 찾을 수 없습니다. id=" + reservationId);
@@ -104,6 +105,10 @@ public class ReservationCommandService {
             throw new IllegalStateException("취소할 수 없는 상태입니다.");
         }
 
+        // 환불 비율 계산 (취소 처리 전에 동일 시점으로 계산)
+        LocalDateTime now = LocalDateTime.now();
+        int refundRate = calculateRefundRate(reservation, now);
+
         // 예약 취소
         reservation.cancel();
 
@@ -113,10 +118,10 @@ public class ReservationCommandService {
             hospitalReservation.getTimeSlot().decrementReservations();
         }
 
-        return reservation;
+        return CancellationResult.of(reservation, refundRate);
     }
 
-    public int calculateRefundRate(Reservation reservation) {
+    private int calculateRefundRate(Reservation reservation, LocalDateTime referenceTime) {
         HospitalReservation hr = reservation.getHospitalReservation();
         if (hr == null) {
             return 0;
@@ -124,9 +129,8 @@ public class ReservationCommandService {
 
         LocalDateTime reservationTime = hr.getTimeSlot().getDate()
                 .atTime(hr.getTimeSlot().getStartTime());
-        LocalDateTime now = LocalDateTime.now();
 
-        long hoursUntilReservation = ChronoUnit.HOURS.between(now, reservationTime);
+        long hoursUntilReservation = ChronoUnit.HOURS.between(referenceTime, reservationTime);
 
         if (hoursUntilReservation >= 24) {
             return 100;

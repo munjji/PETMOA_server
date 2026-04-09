@@ -7,6 +7,7 @@ import PetMoa.PetMoa.domain.hospital.entity.Veterinarian;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.entity.PetSize;
 import PetMoa.PetMoa.domain.pet.entity.PetType;
+import PetMoa.PetMoa.domain.reservation.dto.CancellationResult;
 import PetMoa.PetMoa.domain.reservation.dto.HospitalReservationRequest;
 import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
 import PetMoa.PetMoa.domain.reservation.dto.TaxiRequest;
@@ -266,10 +267,9 @@ class ReservationControllerTest {
         void success() throws Exception {
             // given
             testReservation.cancel();
+            CancellationResult cancellationResult = CancellationResult.of(testReservation, 100);
             given(reservationFacade.cancelReservation(1L, 1L))
-                    .willReturn(testReservation);
-            given(reservationFacade.calculateRefundRate(testReservation))
-                    .willReturn(100);
+                    .willReturn(cancellationResult);
 
             // when & then
             mockMvc.perform(post("/api/v1/reservations/1/cancel")

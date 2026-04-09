@@ -1,6 +1,10 @@
 package PetMoa.PetMoa.domain.reservation.controller;
 
-import PetMoa.PetMoa.domain.reservation.dto.*;
+import PetMoa.PetMoa.domain.reservation.dto.CancellationResult;
+import PetMoa.PetMoa.domain.reservation.dto.ReservationCancelResponse;
+import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
+import PetMoa.PetMoa.domain.reservation.dto.ReservationListResponse;
+import PetMoa.PetMoa.domain.reservation.dto.ReservationResponse;
 import PetMoa.PetMoa.domain.reservation.entity.Reservation;
 import PetMoa.PetMoa.domain.reservation.service.ReservationFacade;
 import PetMoa.PetMoa.domain.reservation.service.ReservationQueryService;
@@ -52,8 +56,7 @@ public class ReservationController {
     public ApiResponse<ReservationCancelResponse> cancelReservation(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long reservationId) {
-        Reservation reservation = reservationFacade.cancelReservation(userId, reservationId);
-        int refundRate = reservationFacade.calculateRefundRate(reservation);
-        return ApiResponse.onSuccess(ReservationCancelResponse.from(reservation, refundRate));
+        CancellationResult result = reservationFacade.cancelReservation(userId, reservationId);
+        return ApiResponse.onSuccess(ReservationCancelResponse.from(result.reservation(), result.refundRate()));
     }
 }

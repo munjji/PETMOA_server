@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.reservation.service;
 
+import PetMoa.PetMoa.domain.reservation.dto.CancellationResult;
 import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
 import PetMoa.PetMoa.domain.reservation.entity.HospitalReservation;
 import PetMoa.PetMoa.domain.reservation.entity.Reservation;
@@ -30,7 +31,7 @@ public class ReservationFacade {
         });
     }
 
-    public Reservation cancelReservation(Long userId, Long reservationId) {
+    public CancellationResult cancelReservation(Long userId, Long reservationId) {
         Reservation reservation = reservationQueryService.getReservationByIdAndUserId(reservationId, userId);
         HospitalReservation hospitalReservation = reservation.getHospitalReservation();
 
@@ -46,9 +47,5 @@ public class ReservationFacade {
         return distributedLockExecutor.executeWithLock(lockKey, () -> {
             return reservationCommandService.cancelReservation(userId, reservationId);
         });
-    }
-
-    public int calculateRefundRate(Reservation reservation) {
-        return reservationCommandService.calculateRefundRate(reservation);
     }
 }
