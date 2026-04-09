@@ -6,6 +6,7 @@ import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.repository.PetRepository;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,7 +56,7 @@ public class PetCommandService {
 
     private void validateOwnership(Long userId, Pet pet) {
         if (!pet.getOwner().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다.");
+            throw new ForbiddenException("해당 반려동물의 소유자가 아닙니다.");
         }
     }
 }

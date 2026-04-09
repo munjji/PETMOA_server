@@ -58,7 +58,7 @@ class TaxiReservationTest {
         LocalDateTime pickupTime = LocalDateTime.of(2024, 3, 15, 13, 30);
         Double distance = 5.5;
         Integer fare = 10500;
-        TaxiReservationType type = TaxiReservationType.TO_HOSPITAL;
+        TaxiReservationType type = TaxiReservationType.PICKUP;
 
         // when
         TaxiReservation taxiReservation = TaxiReservation.builder()
@@ -209,8 +209,8 @@ class TaxiReservationTest {
     @DisplayName("TaxiReservationType Enum 값 검증")
     void validateTaxiReservationType() {
         // given & when & then
-        assertThat(TaxiReservationType.TO_HOSPITAL).isNotNull();
-        assertThat(TaxiReservationType.FROM_HOSPITAL).isNotNull();
+        assertThat(TaxiReservationType.PICKUP).isNotNull();
+        assertThat(TaxiReservationType.RETURN).isNotNull();
     }
 
     @Test
@@ -256,29 +256,31 @@ class TaxiReservationTest {
     }
 
     @Test
-    @DisplayName("병원 가는 길 여부 확인")
-    void isToHospital() {
+    @DisplayName("픽업/귀가 여부 확인")
+    void isPickupOrReturn() {
         // given
-        TaxiReservation toHospital = TaxiReservation.builder()
+        TaxiReservation pickup = TaxiReservation.builder()
                 .reservation(reservation)
                 .taxi(taxi)
                 .pickupAddress("서울시 강남구 테헤란로 100")
                 .dropoffAddress("서울시 강남구 테헤란로 123")
                 .pickupTime(LocalDateTime.of(2024, 3, 15, 13, 30))
-                .type(TaxiReservationType.TO_HOSPITAL)
+                .type(TaxiReservationType.PICKUP)
                 .build();
 
-        TaxiReservation fromHospital = TaxiReservation.builder()
+        TaxiReservation returnTrip = TaxiReservation.builder()
                 .reservation(reservation)
                 .taxi(taxi)
                 .pickupAddress("서울시 강남구 테헤란로 123")
                 .dropoffAddress("서울시 강남구 테헤란로 100")
                 .pickupTime(LocalDateTime.of(2024, 3, 15, 15, 30))
-                .type(TaxiReservationType.FROM_HOSPITAL)
+                .type(TaxiReservationType.RETURN)
                 .build();
 
         // when & then
-        assertThat(toHospital.isToHospital()).isTrue();
-        assertThat(fromHospital.isToHospital()).isFalse();
+        assertThat(pickup.isPickup()).isTrue();
+        assertThat(pickup.isReturn()).isFalse();
+        assertThat(returnTrip.isPickup()).isFalse();
+        assertThat(returnTrip.isReturn()).isTrue();
     }
 }

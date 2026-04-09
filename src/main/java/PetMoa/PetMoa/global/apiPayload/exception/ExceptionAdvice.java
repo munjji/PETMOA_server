@@ -3,6 +3,7 @@ package PetMoa.PetMoa.global.apiPayload.exception;
 import PetMoa.PetMoa.global.apiPayload.ApiResponse;
 import PetMoa.PetMoa.global.apiPayload.code.ErrorReasonDTO;
 import PetMoa.PetMoa.global.apiPayload.code.status.ErrorStatus;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
@@ -85,6 +86,12 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException e, WebRequest request) {
         ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus._BAD_REQUEST.getCode(), e.getMessage(), null);
         return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(value = ForbiddenException.class)
+    public ResponseEntity<Object> handleForbiddenException(ForbiddenException e, WebRequest request) {
+        ApiResponse<Object> body = ApiResponse.onFailure(ErrorStatus._FORBIDDEN.getCode(), e.getMessage(), null);
+        return super.handleExceptionInternal(e, body, HttpHeaders.EMPTY, HttpStatus.FORBIDDEN, request);
     }
 
     private ResponseEntity<Object> handleExceptionInternal(Exception e, ErrorReasonDTO reason, HttpHeaders headers, HttpServletRequest request) {
