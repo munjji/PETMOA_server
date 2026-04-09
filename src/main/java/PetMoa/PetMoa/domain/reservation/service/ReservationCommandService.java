@@ -15,6 +15,7 @@ import PetMoa.PetMoa.domain.taxi.entity.PetTaxi;
 import PetMoa.PetMoa.domain.taxi.service.PetTaxiQueryService;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.service.UserQueryService;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -153,13 +154,13 @@ public class ReservationCommandService {
 
     private void validatePetOwnership(Long userId, Pet pet) {
         if (!pet.getOwner().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다.");
+            throw new ForbiddenException("해당 반려동물의 소유자가 아닙니다.");
         }
     }
 
     private void validateReservationOwnership(Long userId, Reservation reservation) {
         if (!reservation.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 예약의 소유자가 아닙니다.");
+            throw new ForbiddenException("해당 예약의 소유자가 아닙니다.");
         }
     }
 }

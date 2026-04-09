@@ -78,6 +78,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbiddenException(
+            ForbiddenException e, HttpServletRequest request) {
+        log.warn("ForbiddenException: {}", e.getMessage());
+
+        ErrorResponse response = ErrorResponse.of(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     @ExceptionHandler(LockAcquisitionException.class)
     public ResponseEntity<ErrorResponse> handleLockAcquisitionException(
             LockAcquisitionException e, HttpServletRequest request) {

@@ -11,6 +11,7 @@ import PetMoa.PetMoa.domain.reservation.dto.CancellationResult;
 import PetMoa.PetMoa.domain.reservation.dto.HospitalReservationRequest;
 import PetMoa.PetMoa.domain.reservation.dto.ReservationCreateRequest;
 import PetMoa.PetMoa.domain.reservation.dto.TaxiRequest;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import PetMoa.PetMoa.domain.reservation.entity.*;
 import PetMoa.PetMoa.domain.reservation.service.ReservationFacade;
 import PetMoa.PetMoa.domain.reservation.service.ReservationQueryService;
@@ -249,12 +250,12 @@ class ReservationControllerTest {
         void failNotOwner() throws Exception {
             // given
             given(reservationQueryService.getReservationByIdAndUserId(1L, 2L))
-                    .willThrow(new IllegalArgumentException("해당 예약의 소유자가 아닙니다."));
+                    .willThrow(new ForbiddenException("해당 예약의 소유자가 아닙니다."));
 
             // when & then
             mockMvc.perform(get("/api/v1/reservations/1")
                             .header("X-User-Id", "2"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isForbidden());
         }
     }
 

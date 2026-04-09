@@ -2,6 +2,7 @@ package PetMoa.PetMoa.domain.reservation.service;
 
 import PetMoa.PetMoa.domain.reservation.entity.Reservation;
 import PetMoa.PetMoa.domain.reservation.repository.ReservationRepository;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public class ReservationQueryService {
 
     private void validateOwnership(Long userId, Reservation reservation) {
         if (!reservation.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("해당 예약의 소유자가 아닙니다.");
+            throw new ForbiddenException("해당 예약의 소유자가 아닙니다.");
         }
     }
 }

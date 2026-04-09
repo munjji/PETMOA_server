@@ -9,6 +9,7 @@ import PetMoa.PetMoa.domain.pet.service.PetCommandService;
 import PetMoa.PetMoa.domain.pet.service.PetQueryService;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.global.apiPayload.exception.ExceptionAdvice;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -225,14 +226,14 @@ class PetControllerTest {
             );
 
             given(petCommandService.updatePet(eq(2L), eq(1L), any(PetUpdateRequest.class)))
-                    .willThrow(new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다."));
+                    .willThrow(new ForbiddenException("해당 반려동물의 소유자가 아닙니다."));
 
             // when & then
             mockMvc.perform(patch("/api/v1/pets/1")
                             .header("X-User-Id", "2")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -270,13 +271,13 @@ class PetControllerTest {
         @DisplayName("실패: 다른 사용자의 반려동물 삭제 시도")
         void failNotOwner() throws Exception {
             // given
-            doThrow(new IllegalArgumentException("해당 반려동물의 소유자가 아닙니다."))
+            doThrow(new ForbiddenException("해당 반려동물의 소유자가 아닙니다."))
                     .when(petCommandService).deletePet(2L, 1L);
 
             // when & then
             mockMvc.perform(delete("/api/v1/pets/1")
                             .header("X-User-Id", "2"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isForbidden());
         }
     }
 }

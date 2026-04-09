@@ -8,6 +8,7 @@ import PetMoa.PetMoa.domain.pet.entity.PetType;
 import PetMoa.PetMoa.domain.pet.repository.PetRepository;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.repository.UserRepository;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -152,7 +153,7 @@ class PetCommandServiceTest {
 
             // when & then
             assertThatThrownBy(() -> petCommandService.deletePet(999L, 1L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ForbiddenException.class)
                     .hasMessageContaining("해당 반려동물의 소유자가 아닙니다");
         }
     }
@@ -198,7 +199,7 @@ class PetCommandServiceTest {
 
             // when & then
             assertThatThrownBy(() -> petCommandService.updatePet(999L, 1L, request))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ForbiddenException.class)
                     .hasMessageContaining("해당 반려동물의 소유자가 아닙니다");
         }
     }
