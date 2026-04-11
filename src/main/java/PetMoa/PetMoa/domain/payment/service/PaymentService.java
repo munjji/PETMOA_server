@@ -43,6 +43,12 @@ public class PaymentService {
         Reservation reservation = reservationQueryService.getReservationById(request.reservationId());
         validateReservationOwnership(userId, reservation);
 
+        // 예약 상태 검증 - PENDING 상태에서만 결제 생성 가능
+        if (!reservation.canConfirm()) {
+            throw new PaymentException("INVALID_RESERVATION_STATUS",
+                    "결제 대기 상태의 예약만 결제할 수 있습니다. 현재 상태: " + reservation.getStatus());
+        }
+
         // 이미 결제가 존재하는지 확인
         Payment existingPayment = paymentRepository.findByReservationId(request.reservationId());
         if (existingPayment != null) {
@@ -79,6 +85,13 @@ public class PaymentService {
     public Payment confirmPayment(PaymentConfirmRequest request) {
         Payment payment = paymentQueryService.getPaymentByOrderId(request.orderId());
 
+        // 예약 상태 검증 - PENDING 상태에서만 결제 승인 가능
+        Reservation reservation = payment.getReservation();
+        if (!reservation.canConfirm()) {
+            throw new PaymentException("INVALID_RESERVATION_STATUS",
+                    "결제 대기 상태의 예약만 확정할 수 있습니다. 현재 상태: " + reservation.getStatus());
+        }
+
         // 금액 검증
         if (!payment.getTotalAmount().equals(request.amount())) {
             throw new PaymentException("AMOUNT_MISMATCH", "결제 금액이 일치하지 않습니다.");
@@ -100,7 +113,6 @@ public class PaymentService {
         payment.approve(request.paymentKey());
 
         // 예약 확정
-        Reservation reservation = payment.getReservation();
         reservation.confirm();
 
         log.info("결제 승인 완료 - paymentId: {}, paymentKey: {}", payment.getId(), request.paymentKey());
@@ -131,7 +143,7 @@ public class PaymentService {
 
         if (refundAmount == 0) {
             // 환불 금액이 0인 경우 (당일 취소)
-            payment.partialCancel(0, cancelReason + " (당일 취소로 환불 불가)");
+            payment.cancelWithNoRefund(cancelReason + " (당일 취소로 환불 불가)");
             log.info("당일 취소로 환불 불가 - paymentId: {}", paymentId);
             return payment;
         }

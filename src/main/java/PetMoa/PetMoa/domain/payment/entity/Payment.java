@@ -124,6 +124,19 @@ public class Payment {
         this.cancelledAt = LocalDateTime.now();
     }
 
+    /**
+     * 당일 취소로 인한 환불 불가 처리
+     */
+    public void cancelWithNoRefund(String cancelReason) {
+        if (!canRefund()) {
+            throw new IllegalStateException("환불할 수 없는 상태입니다.");
+        }
+        this.status = PaymentStatus.CANCELLED;
+        this.refundAmount = 0;
+        this.cancelReason = cancelReason;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
     public void fail() {
         this.status = PaymentStatus.FAILED;
     }
