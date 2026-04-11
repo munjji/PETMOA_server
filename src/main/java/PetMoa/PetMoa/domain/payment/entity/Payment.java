@@ -141,6 +141,10 @@ public class Payment {
         this.status = PaymentStatus.FAILED;
     }
 
+    public boolean isPending() {
+        return this.status == PaymentStatus.PENDING;
+    }
+
     public boolean isApproved() {
         return this.status == PaymentStatus.APPROVED;
     }

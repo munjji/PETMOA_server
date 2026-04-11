@@ -85,6 +85,12 @@ public class PaymentService {
     public Payment confirmPayment(PaymentConfirmRequest request) {
         Payment payment = paymentQueryService.getPaymentByOrderId(request.orderId());
 
+        // 결제 상태 검증 - PENDING 상태에서만 승인 가능
+        if (!payment.isPending()) {
+            throw new PaymentException("INVALID_PAYMENT_STATUS",
+                    "대기 중인 결제만 승인할 수 있습니다. 현재 상태: " + payment.getStatus());
+        }
+
         // 예약 상태 검증 - PENDING 상태에서만 결제 승인 가능
         Reservation reservation = payment.getReservation();
         if (!reservation.canConfirm()) {
