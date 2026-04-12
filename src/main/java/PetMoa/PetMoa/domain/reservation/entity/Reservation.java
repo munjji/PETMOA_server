@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.reservation.entity;
 
+import PetMoa.PetMoa.domain.payment.entity.Payment;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.user.entity.User;
 import jakarta.persistence.*;
@@ -33,9 +34,8 @@ public class Reservation {
     @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaxiReservation> taxiReservations = new ArrayList<>();
 
-    // Payment는 Task #10에서 구현 예정
-    @Transient
-    private Object payment;
+    @OneToOne(mappedBy = "reservation", fetch = FetchType.LAZY)
+    private Payment payment;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
