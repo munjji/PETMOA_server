@@ -35,8 +35,9 @@ public class PaymentController {
     @Operation(summary = "결제 승인", description = "토스페이먼츠 결제 승인을 처리합니다. 클라이언트에서 결제 완료 후 호출합니다.")
     @PostMapping("/confirm")
     public ApiResponse<PaymentResponse> confirmPayment(
+            @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody PaymentConfirmRequest request) {
-        Payment payment = paymentService.confirmPayment(request);
+        Payment payment = paymentService.confirmPayment(userId, request);
         return ApiResponse.onSuccess(PaymentResponse.from(payment));
     }
 

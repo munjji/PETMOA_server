@@ -183,11 +183,12 @@ class PaymentControllerTest {
             approvedPayment.approve("test_payment_key_123");
             ReflectionTestUtils.setField(approvedPayment, "id", 1L);
 
-            given(paymentService.confirmPayment(any(PaymentConfirmRequest.class)))
+            given(paymentService.confirmPayment(eq(1L), any(PaymentConfirmRequest.class)))
                     .willReturn(approvedPayment);
 
             // when & then
             mockMvc.perform(post("/api/v1/payments/confirm")
+                            .header("X-User-Id", "1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -206,14 +207,36 @@ class PaymentControllerTest {
                     20000
             );
 
-            given(paymentService.confirmPayment(any(PaymentConfirmRequest.class)))
+            given(paymentService.confirmPayment(eq(1L), any(PaymentConfirmRequest.class)))
                     .willThrow(new PaymentException("AMOUNT_MISMATCH", "결제 금액이 일치하지 않습니다."));
 
             // when & then
             mockMvc.perform(post("/api/v1/payments/confirm")
+                            .header("X-User-Id", "1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 결제 승인 시도")
+        void failNotOwner() throws Exception {
+            // given
+            PaymentConfirmRequest request = new PaymentConfirmRequest(
+                    "test_payment_key_123",
+                    "PETMOA_TEST123456789",
+                    15000
+            );
+
+            given(paymentService.confirmPayment(eq(999L), any(PaymentConfirmRequest.class)))
+                    .willThrow(new ForbiddenException("해당 결제의 소유자가 아닙니다."));
+
+            // when & then
+            mockMvc.perform(post("/api/v1/payments/confirm")
+                            .header("X-User-Id", "999")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
         }
     }
 

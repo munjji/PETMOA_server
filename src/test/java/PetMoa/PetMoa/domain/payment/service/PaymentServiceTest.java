@@ -218,7 +218,7 @@ class PaymentServiceTest {
             given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt())).willReturn(tossResponse);
 
             // when
-            Payment result = paymentService.confirmPayment(request);
+            Payment result = paymentService.confirmPayment(1L, request);
 
             // then
             assertThat(result.getStatus()).isEqualTo(PaymentStatus.APPROVED);
@@ -239,7 +239,7 @@ class PaymentServiceTest {
             given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
 
             // when & then
-            assertThatThrownBy(() -> paymentService.confirmPayment(request))
+            assertThatThrownBy(() -> paymentService.confirmPayment(1L, request))
                     .isInstanceOf(PaymentException.class)
                     .hasMessageContaining("결제 금액이 일치하지 않습니다");
 
@@ -273,11 +273,31 @@ class PaymentServiceTest {
             given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt())).willReturn(tossResponse);
 
             // when & then
-            assertThatThrownBy(() -> paymentService.confirmPayment(request))
+            assertThatThrownBy(() -> paymentService.confirmPayment(1L, request))
                     .isInstanceOf(PaymentException.class)
                     .hasMessageContaining("결제가 승인되지 않았습니다");
 
             assertThat(testPayment.getStatus()).isEqualTo(PaymentStatus.FAILED);
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 결제 승인 시도")
+        void confirmPayment_NotOwner() {
+            // given
+            PaymentConfirmRequest request = new PaymentConfirmRequest(
+                    "test_payment_key_123",
+                    "PETMOA_TEST123456789",
+                    15000
+            );
+
+            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
+
+            // when & then
+            assertThatThrownBy(() -> paymentService.confirmPayment(999L, request))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("소유자가 아닙니다");
+
+            verify(tossPaymentsClient, never()).confirmPayment(anyString(), anyString(), anyInt());
         }
     }
 

@@ -82,8 +82,11 @@ public class PaymentService {
      * - Payment 상태 업데이트
      * - 예약 확정
      */
-    public Payment confirmPayment(PaymentConfirmRequest request) {
+    public Payment confirmPayment(Long userId, PaymentConfirmRequest request) {
         Payment payment = paymentQueryService.getPaymentByOrderIdInternal(request.orderId());
+
+        // 소유권 검증
+        validateReservationOwnership(userId, payment.getReservation());
 
         // 결제 상태 검증 - PENDING 상태에서만 승인 가능
         if (!payment.isPending()) {
