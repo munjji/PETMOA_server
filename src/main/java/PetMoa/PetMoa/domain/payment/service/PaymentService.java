@@ -14,6 +14,7 @@ import PetMoa.PetMoa.global.exception.ForbiddenException;
 import PetMoa.PetMoa.global.exception.PaymentException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +35,8 @@ public class PaymentService {
     private final TossPaymentsClient tossPaymentsClient;
     private final Clock clock;
 
-    private static final int DEPOSIT_AMOUNT = 10000;
+    @Value("${payment.deposit-amount:10000}")
+    private int depositAmount;
 
     /**
      * 결제 요청 생성
@@ -66,7 +68,7 @@ public class PaymentService {
         Payment payment = Payment.builder()
                 .reservation(reservation)
                 .orderId(orderId)
-                .depositAmount(DEPOSIT_AMOUNT)
+                .depositAmount(depositAmount)
                 .taxiFare(taxiFare)
                 .method(request.method())
                 .build();

@@ -130,6 +130,9 @@ class PaymentServiceTest {
                 .method(PaymentMethod.CARD)
                 .build();
         ReflectionTestUtils.setField(testPayment, "id", 1L);
+
+        // @Value 필드 설정
+        ReflectionTestUtils.setField(paymentService, "depositAmount", 10000);
     }
 
     @Nested
