@@ -32,8 +32,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -58,6 +62,9 @@ class PaymentServiceTest {
 
     @Mock
     private TossPaymentsClient tossPaymentsClient;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -325,7 +332,11 @@ class PaymentServiceTest {
         @Test
         @DisplayName("성공: 24시간 전 전액 환불")
         void refundPayment_FullRefund() {
-            // given
+            // given: 예약 시간 24시간 전으로 현재 시간 설정
+            LocalDateTime reservationTime = testTimeSlot.getDate().atTime(testTimeSlot.getStartTime());
+            LocalDateTime now = reservationTime.minusHours(25);
+            setupClock(now);
+
             given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
             given(tossPaymentsClient.cancelPayment(anyString(), anyString()))
                     .willReturn(createCancelResponse());
@@ -335,6 +346,7 @@ class PaymentServiceTest {
 
             // then
             assertThat(result.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
+            assertThat(result.getRefundAmount()).isEqualTo(15000); // 전액 환불
             verify(tossPaymentsClient).cancelPayment("test_payment_key_123", "고객 요청");
         }
 
@@ -373,6 +385,53 @@ class PaymentServiceTest {
                     .hasMessageContaining("소유자가 아닙니다");
         }
 
+        @Test
+        @DisplayName("성공: 12시간 전 50% 부분 환불")
+        void refundPayment_PartialRefund_12HoursBefore() {
+            // given: 예약 시간 12시간 전으로 현재 시간 설정
+            LocalDateTime reservationTime = testTimeSlot.getDate().atTime(testTimeSlot.getStartTime());
+            LocalDateTime now = reservationTime.minusHours(12);
+            setupClock(now);
+
+            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
+            given(tossPaymentsClient.cancelPaymentPartially(anyString(), anyString(), anyInt()))
+                    .willReturn(createPartialCancelResponse(7500));
+
+            // when
+            Payment result = paymentService.refundPayment(1L, 1L, "고객 요청");
+
+            // then
+            assertThat(result.getStatus()).isEqualTo(PaymentStatus.PARTIAL_CANCELLED);
+            assertThat(result.getRefundAmount()).isEqualTo(7500); // 15000 * 50%
+            verify(tossPaymentsClient).cancelPaymentPartially("test_payment_key_123", "고객 요청", 7500);
+        }
+
+        @Test
+        @DisplayName("성공: 당일 취소 - 환불 불가")
+        void refundPayment_NoRefund_SameDay() {
+            // given: 예약 시간 6시간 전으로 현재 시간 설정 (당일)
+            LocalDateTime reservationTime = testTimeSlot.getDate().atTime(testTimeSlot.getStartTime());
+            LocalDateTime now = reservationTime.minusHours(6);
+            setupClock(now);
+
+            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
+
+            // when
+            Payment result = paymentService.refundPayment(1L, 1L, "고객 요청");
+
+            // then
+            assertThat(result.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
+            assertThat(result.getRefundAmount()).isEqualTo(0);
+            verify(tossPaymentsClient, never()).cancelPayment(anyString(), anyString());
+            verify(tossPaymentsClient, never()).cancelPaymentPartially(anyString(), anyString(), anyInt());
+        }
+
+        private void setupClock(LocalDateTime dateTime) {
+            Instant instant = dateTime.atZone(ZoneId.systemDefault()).toInstant();
+            given(clock.instant()).willReturn(instant);
+            given(clock.getZone()).willReturn(ZoneId.systemDefault());
+        }
+
         private TossPaymentResponse createCancelResponse() {
             return new TossPaymentResponse(
                     "test_payment_key_123",
@@ -386,6 +445,23 @@ class PaymentServiceTest {
                     null,
                     new TossPaymentResponse.Cancels[]{
                             new TossPaymentResponse.Cancels(15000, "고객 요청", null, "txn_key")
+                    }
+            );
+        }
+
+        private TossPaymentResponse createPartialCancelResponse(int refundAmount) {
+            return new TossPaymentResponse(
+                    "test_payment_key_123",
+                    "PETMOA_TEST123456789",
+                    "예약금 + 택시비",
+                    "PARTIAL_CANCELED",
+                    15000,
+                    15000 - refundAmount,
+                    "카드",
+                    null,
+                    null,
+                    new TossPaymentResponse.Cancels[]{
+                            new TossPaymentResponse.Cancels(refundAmount, "고객 요청", null, "txn_key")
                     }
             );
         }

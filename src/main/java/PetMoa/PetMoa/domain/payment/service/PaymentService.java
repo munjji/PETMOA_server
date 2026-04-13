@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -31,6 +32,7 @@ public class PaymentService {
     private final PaymentQueryService paymentQueryService;
     private final ReservationQueryService reservationQueryService;
     private final TossPaymentsClient tossPaymentsClient;
+    private final Clock clock;
 
     private static final int DEPOSIT_AMOUNT = 10000;
 
@@ -199,7 +201,7 @@ public class PaymentService {
 
         LocalDateTime reservationTime = hr.getTimeSlot().getDate()
                 .atTime(hr.getTimeSlot().getStartTime());
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         long hoursUntilReservation = ChronoUnit.HOURS.between(now, reservationTime);
 
