@@ -58,6 +58,9 @@ class PaymentServiceTest {
     private PaymentQueryService paymentQueryService;
 
     @Mock
+    private PaymentTransactionService paymentTransactionService;
+
+    @Mock
     private ReservationQueryService reservationQueryService;
 
     @Mock
@@ -202,7 +205,7 @@ class PaymentServiceTest {
     class ConfirmPayment {
 
         @Test
-        @DisplayName("성공: 결제 승인")
+        @DisplayName("성공: 결제 승인 - 트랜잭션 분리 검증")
         void confirmPayment_Success() {
             // given
             PaymentConfirmRequest request = new PaymentConfirmRequest(
@@ -224,16 +227,33 @@ class PaymentServiceTest {
                     null
             );
 
-            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
-            given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt())).willReturn(tossResponse);
+            Payment approvedPayment = Payment.builder()
+                    .reservation(testReservation)
+                    .orderId("PETMOA_TEST123456789")
+                    .depositAmount(10000)
+                    .taxiFare(5000)
+                    .method(PaymentMethod.CARD)
+                    .build();
+            approvedPayment.approve("test_payment_key_123");
+
+            // 트랜잭션 1: 검증
+            given(paymentTransactionService.validateForConfirm("PETMOA_TEST123456789", 15000))
+                    .willReturn(testPayment);
+            // 외부 API 호출
+            given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt()))
+                    .willReturn(tossResponse);
+            // 트랜잭션 2: DB 업데이트
+            given(paymentTransactionService.completeConfirm("PETMOA_TEST123456789", "test_payment_key_123"))
+                    .willReturn(approvedPayment);
 
             // when
             Payment result = paymentService.confirmPayment(1L, request);
 
             // then
             assertThat(result.getStatus()).isEqualTo(PaymentStatus.APPROVED);
-            assertThat(result.getPaymentKey()).isEqualTo("test_payment_key_123");
+            verify(paymentTransactionService).validateForConfirm("PETMOA_TEST123456789", 15000);
             verify(tossPaymentsClient).confirmPayment("test_payment_key_123", "PETMOA_TEST123456789", 15000);
+            verify(paymentTransactionService).completeConfirm("PETMOA_TEST123456789", "test_payment_key_123");
         }
 
         @Test
@@ -243,10 +263,11 @@ class PaymentServiceTest {
             PaymentConfirmRequest request = new PaymentConfirmRequest(
                     "test_payment_key_123",
                     "PETMOA_TEST123456789",
-                    20000  // 실제 금액은 15000
+                    20000
             );
 
-            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
+            given(paymentTransactionService.validateForConfirm("PETMOA_TEST123456789", 20000))
+                    .willThrow(new PaymentException("AMOUNT_MISMATCH", "결제 금액이 일치하지 않습니다."));
 
             // when & then
             assertThatThrownBy(() -> paymentService.confirmPayment(1L, request))
@@ -270,7 +291,7 @@ class PaymentServiceTest {
                     "test_payment_key_123",
                     "PETMOA_TEST123456789",
                     "예약금 + 택시비",
-                    "FAILED",  // 승인 실패
+                    "FAILED",
                     15000,
                     15000,
                     "카드",
@@ -279,15 +300,28 @@ class PaymentServiceTest {
                     null
             );
 
-            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
-            given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt())).willReturn(tossResponse);
+            Payment failedPayment = Payment.builder()
+                    .reservation(testReservation)
+                    .orderId("PETMOA_TEST123456789")
+                    .depositAmount(10000)
+                    .taxiFare(5000)
+                    .method(PaymentMethod.CARD)
+                    .build();
+            failedPayment.fail();
 
-            // when & then
-            assertThatThrownBy(() -> paymentService.confirmPayment(1L, request))
-                    .isInstanceOf(PaymentException.class)
-                    .hasMessageContaining("결제가 승인되지 않았습니다");
+            given(paymentTransactionService.validateForConfirm("PETMOA_TEST123456789", 15000))
+                    .willReturn(testPayment);
+            given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt()))
+                    .willReturn(tossResponse);
+            given(paymentTransactionService.failConfirm("PETMOA_TEST123456789"))
+                    .willReturn(failedPayment);
 
-            assertThat(testPayment.getStatus()).isEqualTo(PaymentStatus.FAILED);
+            // when
+            Payment result = paymentService.confirmPayment(1L, request);
+
+            // then
+            assertThat(result.getStatus()).isEqualTo(PaymentStatus.FAILED);
+            verify(paymentTransactionService).failConfirm("PETMOA_TEST123456789");
         }
 
         @Test
@@ -300,7 +334,8 @@ class PaymentServiceTest {
                     15000
             );
 
-            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
+            given(paymentTransactionService.validateForConfirm("PETMOA_TEST123456789", 15000))
+                    .willReturn(testPayment);
 
             // when & then
             assertThatThrownBy(() -> paymentService.confirmPayment(999L, request))
@@ -333,40 +368,48 @@ class PaymentServiceTest {
         }
 
         @Test
-        @DisplayName("성공: 24시간 전 전액 환불")
+        @DisplayName("성공: 24시간 전 전액 환불 - 트랜잭션 분리 검증")
         void refundPayment_FullRefund() {
             // given: 예약 시간 24시간 전으로 현재 시간 설정
             LocalDateTime reservationTime = testTimeSlot.getDate().atTime(testTimeSlot.getStartTime());
             LocalDateTime now = reservationTime.minusHours(25);
             setupClock(now);
 
-            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
-            given(tossPaymentsClient.cancelPayment(anyString(), anyString()))
-                    .willReturn(createCancelResponse());
-
-            // when
-            Payment result = paymentService.refundPayment(1L, 1L, "고객 요청");
-
-            // then
-            assertThat(result.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
-            assertThat(result.getRefundAmount()).isEqualTo(15000); // 전액 환불
-            verify(tossPaymentsClient).cancelPayment("test_payment_key_123", "고객 요청");
-        }
-
-        @Test
-        @DisplayName("실패: 환불할 수 없는 상태")
-        void refundPayment_NotRefundable() {
-            // given
-            Payment pendingPayment = Payment.builder()
+            Payment cancelledPayment = Payment.builder()
                     .reservation(testReservation)
                     .orderId("PETMOA_TEST123456789")
                     .depositAmount(10000)
                     .taxiFare(5000)
                     .method(PaymentMethod.CARD)
                     .build();
-            ReflectionTestUtils.setField(pendingPayment, "id", 2L);
+            cancelledPayment.approve("test_payment_key_123");
+            cancelledPayment.cancel("고객 요청");
 
-            given(paymentQueryService.getPaymentByIdInternal(2L)).willReturn(pendingPayment);
+            // 트랜잭션 1: 검증
+            given(paymentTransactionService.validateForRefund(1L)).willReturn(testPayment);
+            // 외부 API 호출
+            given(tossPaymentsClient.cancelPayment(anyString(), anyString()))
+                    .willReturn(createCancelResponse());
+            // 트랜잭션 2: DB 업데이트
+            given(paymentTransactionService.completeFullRefund(1L, "고객 요청"))
+                    .willReturn(cancelledPayment);
+
+            // when
+            Payment result = paymentService.refundPayment(1L, 1L, "고객 요청");
+
+            // then
+            assertThat(result.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
+            verify(paymentTransactionService).validateForRefund(1L);
+            verify(tossPaymentsClient).cancelPayment("test_payment_key_123", "고객 요청");
+            verify(paymentTransactionService).completeFullRefund(1L, "고객 요청");
+        }
+
+        @Test
+        @DisplayName("실패: 환불할 수 없는 상태")
+        void refundPayment_NotRefundable() {
+            // given
+            given(paymentTransactionService.validateForRefund(2L))
+                    .willThrow(new PaymentException("REFUND_NOT_ALLOWED", "환불할 수 없는 상태입니다."));
 
             // when & then
             assertThatThrownBy(() -> paymentService.refundPayment(1L, 2L, "고객 요청"))
@@ -380,7 +423,7 @@ class PaymentServiceTest {
         @DisplayName("실패: 다른 사용자의 결제 환불 시도")
         void refundPayment_NotOwner() {
             // given
-            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
+            given(paymentTransactionService.validateForRefund(1L)).willReturn(testPayment);
 
             // when & then
             assertThatThrownBy(() -> paymentService.refundPayment(999L, 1L, "고객 요청"))
@@ -396,28 +439,51 @@ class PaymentServiceTest {
             LocalDateTime now = reservationTime.minusHours(12);
             setupClock(now);
 
-            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
+            Payment partialCancelledPayment = Payment.builder()
+                    .reservation(testReservation)
+                    .orderId("PETMOA_TEST123456789")
+                    .depositAmount(10000)
+                    .taxiFare(5000)
+                    .method(PaymentMethod.CARD)
+                    .build();
+            partialCancelledPayment.approve("test_payment_key_123");
+            partialCancelledPayment.partialCancel(7500, "고객 요청");
+
+            given(paymentTransactionService.validateForRefund(1L)).willReturn(testPayment);
             given(tossPaymentsClient.cancelPaymentPartially(anyString(), anyString(), anyInt()))
                     .willReturn(createPartialCancelResponse(7500));
+            given(paymentTransactionService.completePartialRefund(1L, 7500, "고객 요청"))
+                    .willReturn(partialCancelledPayment);
 
             // when
             Payment result = paymentService.refundPayment(1L, 1L, "고객 요청");
 
             // then
             assertThat(result.getStatus()).isEqualTo(PaymentStatus.PARTIAL_CANCELLED);
-            assertThat(result.getRefundAmount()).isEqualTo(7500); // 15000 * 50%
             verify(tossPaymentsClient).cancelPaymentPartially("test_payment_key_123", "고객 요청", 7500);
         }
 
         @Test
-        @DisplayName("성공: 당일 취소 - 환불 불가")
+        @DisplayName("성공: 당일 취소 - 환불 불가 (외부 API 호출 없음)")
         void refundPayment_NoRefund_SameDay() {
             // given: 예약 시간 6시간 전으로 현재 시간 설정 (당일)
             LocalDateTime reservationTime = testTimeSlot.getDate().atTime(testTimeSlot.getStartTime());
             LocalDateTime now = reservationTime.minusHours(6);
             setupClock(now);
 
-            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
+            Payment noRefundPayment = Payment.builder()
+                    .reservation(testReservation)
+                    .orderId("PETMOA_TEST123456789")
+                    .depositAmount(10000)
+                    .taxiFare(5000)
+                    .method(PaymentMethod.CARD)
+                    .build();
+            noRefundPayment.approve("test_payment_key_123");
+            noRefundPayment.cancelWithNoRefund("고객 요청 (당일 취소로 환불 불가)");
+
+            given(paymentTransactionService.validateForRefund(1L)).willReturn(testPayment);
+            given(paymentTransactionService.completeNoRefund(1L, "고객 요청 (당일 취소로 환불 불가)"))
+                    .willReturn(noRefundPayment);
 
             // when
             Payment result = paymentService.refundPayment(1L, 1L, "고객 요청");
@@ -425,6 +491,7 @@ class PaymentServiceTest {
             // then
             assertThat(result.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
             assertThat(result.getRefundAmount()).isEqualTo(0);
+            // 당일 취소는 외부 API 호출 없이 DB만 업데이트
             verify(tossPaymentsClient, never()).cancelPayment(anyString(), anyString());
             verify(tossPaymentsClient, never()).cancelPaymentPartially(anyString(), anyString(), anyInt());
         }

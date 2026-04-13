@@ -23,14 +23,19 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+/**
+ * 결제 Facade 서비스
+ * 외부 API 호출과 트랜잭션 조율 담당
+ * 직접적인 @Transactional 없음 - PaymentTransactionService에 위임
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentQueryService paymentQueryService;
+    private final PaymentTransactionService paymentTransactionService;
     private final ReservationQueryService reservationQueryService;
     private final TossPaymentsClient tossPaymentsClient;
     private final Clock clock;
@@ -43,6 +48,7 @@ public class PaymentService {
      * - orderId 발급
      * - Payment 엔티티 생성 (PENDING 상태)
      */
+    @Transactional
     public Payment createPayment(Long userId, PaymentCreateRequest request) {
         Reservation reservation = reservationQueryService.getReservationById(request.reservationId());
         validateReservationOwnership(userId, reservation);
@@ -82,70 +88,44 @@ public class PaymentService {
 
     /**
      * 결제 승인 처리
-     * - 토스페이먼츠 API 호출
-     * - Payment 상태 업데이트
-     * - 예약 확정
+     * 트랜잭션 분리: 검증 → 외부 API → DB 업데이트
      */
     public Payment confirmPayment(Long userId, PaymentConfirmRequest request) {
-        Payment payment = paymentQueryService.getPaymentByOrderIdInternal(request.orderId());
-
-        // 소유권 검증
+        // 1. 트랜잭션 1: 검증 (읽기 전용)
+        Payment payment = paymentTransactionService.validateForConfirm(
+                request.orderId(), request.amount());
         validateReservationOwnership(userId, payment.getReservation());
 
-        // 결제 상태 검증 - PENDING 상태에서만 승인 가능
-        if (!payment.isPending()) {
-            throw new PaymentException("INVALID_PAYMENT_STATUS",
-                    "대기 중인 결제만 승인할 수 있습니다. 현재 상태: " + payment.getStatus());
+        // 2. 외부 API 호출 (트랜잭션 밖)
+        TossPaymentResponse tossResponse;
+        try {
+            tossResponse = tossPaymentsClient.confirmPayment(
+                    request.paymentKey(),
+                    request.orderId(),
+                    request.amount()
+            );
+        } catch (Exception e) {
+            log.error("토스페이먼츠 API 호출 실패 - orderId: {}", request.orderId(), e);
+            paymentTransactionService.failConfirm(request.orderId());
+            throw new PaymentException("TOSS_API_ERROR", "결제 승인 중 오류가 발생했습니다.");
         }
 
-        // 예약 상태 검증 - PENDING 상태에서만 결제 승인 가능
-        Reservation reservation = payment.getReservation();
-        if (!reservation.canConfirm()) {
-            throw new PaymentException("INVALID_RESERVATION_STATUS",
-                    "결제 대기 상태의 예약만 확정할 수 있습니다. 현재 상태: " + reservation.getStatus());
-        }
-
-        // 금액 검증
-        if (!payment.getTotalAmount().equals(request.amount())) {
-            throw new PaymentException("AMOUNT_MISMATCH", "결제 금액이 일치하지 않습니다.");
-        }
-
-        // 토스페이먼츠 결제 승인 API 호출
-        TossPaymentResponse tossResponse = tossPaymentsClient.confirmPayment(
-                request.paymentKey(),
-                request.orderId(),
-                request.amount()
-        );
-
+        // 3. 트랜잭션 2: DB 업데이트
         if (!tossResponse.isApproved()) {
-            payment.fail();
-            throw new PaymentException("PAYMENT_NOT_APPROVED", "결제가 승인되지 않았습니다.");
+            return paymentTransactionService.failConfirm(request.orderId());
         }
 
-        // Payment 상태 업데이트
-        payment.approve(request.paymentKey());
-
-        // 예약 확정
-        reservation.confirm();
-
-        log.info("결제 승인 완료 - paymentId: {}, paymentKey: {}", payment.getId(), request.paymentKey());
-
-        return payment;
+        return paymentTransactionService.completeConfirm(request.orderId(), request.paymentKey());
     }
 
     /**
      * 환불 처리
-     * - 환불 정책 적용 (24시간 전 100%, 12시간 전 50%, 당일 0%)
-     * - 토스페이먼츠 취소 API 호출
-     * - Payment 상태 업데이트
+     * 트랜잭션 분리: 검증 → 외부 API → DB 업데이트
      */
     public Payment refundPayment(Long userId, Long paymentId, String cancelReason) {
-        Payment payment = paymentQueryService.getPaymentByIdInternal(paymentId);
+        // 1. 트랜잭션 1: 검증 (읽기 전용)
+        Payment payment = paymentTransactionService.validateForRefund(paymentId);
         validateReservationOwnership(userId, payment.getReservation());
-
-        if (!payment.canRefund()) {
-            throw new PaymentException("REFUND_NOT_ALLOWED", "환불할 수 없는 상태입니다.");
-        }
 
         // 환불 비율 계산
         int refundRate = calculateRefundRate(payment.getReservation());
@@ -154,27 +134,30 @@ public class PaymentService {
         log.info("환불 처리 시작 - paymentId: {}, refundRate: {}%, refundAmount: {}",
                 paymentId, refundRate, refundAmount);
 
+        // 당일 취소: 환불 불가 (외부 API 호출 불필요)
         if (refundAmount == 0) {
-            // 환불 금액이 0인 경우 (당일 취소)
-            payment.cancelWithNoRefund(cancelReason + " (당일 취소로 환불 불가)");
-            log.info("당일 취소로 환불 불가 - paymentId: {}", paymentId);
-            return payment;
+            return paymentTransactionService.completeNoRefund(
+                    paymentId, cancelReason + " (당일 취소로 환불 불가)");
         }
 
-        // 토스페이먼츠 취소 API 호출
+        // 2. 외부 API 호출 (트랜잭션 밖)
+        try {
+            if (refundAmount == payment.getTotalAmount().intValue()) {
+                tossPaymentsClient.cancelPayment(payment.getPaymentKey(), cancelReason);
+            } else {
+                tossPaymentsClient.cancelPaymentPartially(payment.getPaymentKey(), cancelReason, refundAmount);
+            }
+        } catch (Exception e) {
+            log.error("토스페이먼츠 환불 API 호출 실패 - paymentId: {}", paymentId, e);
+            throw new PaymentException("TOSS_API_ERROR", "환불 처리 중 오류가 발생했습니다.");
+        }
+
+        // 3. 트랜잭션 2: DB 업데이트
         if (refundAmount == payment.getTotalAmount().intValue()) {
-            // 전액 환불
-            tossPaymentsClient.cancelPayment(payment.getPaymentKey(), cancelReason);
-            payment.cancel(cancelReason);
+            return paymentTransactionService.completeFullRefund(paymentId, cancelReason);
         } else {
-            // 부분 환불
-            tossPaymentsClient.cancelPaymentPartially(payment.getPaymentKey(), cancelReason, refundAmount);
-            payment.partialCancel(refundAmount, cancelReason);
+            return paymentTransactionService.completePartialRefund(paymentId, refundAmount, cancelReason);
         }
-
-        log.info("환불 처리 완료 - paymentId: {}, refundAmount: {}", paymentId, refundAmount);
-
-        return payment;
     }
 
     /**
