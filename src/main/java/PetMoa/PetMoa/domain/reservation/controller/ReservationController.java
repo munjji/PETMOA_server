@@ -51,12 +51,16 @@ public class ReservationController {
         return ApiResponse.onSuccess(ReservationResponse.from(reservation));
     }
 
-    @Operation(summary = "예약 취소", description = "예약을 취소합니다. 환불 정책이 적용됩니다.")
+    @Operation(summary = "예약 취소", description = "예약을 취소합니다. 결제가 존재하면 환불 정책에 따라 자동 환불됩니다.")
     @PostMapping("/{reservationId}/cancel")
     public ApiResponse<ReservationCancelResponse> cancelReservation(
             @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long reservationId) {
         CancellationResult result = reservationFacade.cancelReservation(userId, reservationId);
-        return ApiResponse.onSuccess(ReservationCancelResponse.from(result.reservation(), result.refundRate()));
+        return ApiResponse.onSuccess(ReservationCancelResponse.from(
+                result.reservation(),
+                result.refundRate(),
+                result.refundAmount()
+        ));
     }
 }

@@ -1,0 +1,211 @@
+package PetMoa.PetMoa.domain.payment.service;
+
+import PetMoa.PetMoa.domain.payment.dto.PaymentConfirmRequest;
+import PetMoa.PetMoa.domain.payment.dto.PaymentCreateRequest;
+import PetMoa.PetMoa.domain.payment.entity.Payment;
+import PetMoa.PetMoa.domain.payment.repository.PaymentRepository;
+import PetMoa.PetMoa.domain.reservation.entity.HospitalReservation;
+import PetMoa.PetMoa.domain.reservation.entity.Reservation;
+import PetMoa.PetMoa.domain.reservation.entity.TaxiReservation;
+import PetMoa.PetMoa.domain.reservation.service.ReservationQueryService;
+import PetMoa.PetMoa.global.client.toss.TossPaymentsClient;
+import PetMoa.PetMoa.global.client.toss.dto.TossPaymentResponse;
+import PetMoa.PetMoa.global.exception.ForbiddenException;
+import PetMoa.PetMoa.global.exception.PaymentException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
+
+/**
+ * 결제 Facade 서비스
+ * 외부 API 호출과 트랜잭션 조율 담당
+ * 직접적인 @Transactional 없음 - PaymentTransactionService에 위임
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final PaymentQueryService paymentQueryService;
+    private final PaymentTransactionService paymentTransactionService;
+    private final ReservationQueryService reservationQueryService;
+    private final TossPaymentsClient tossPaymentsClient;
+    private final Clock clock;
+
+    @Value("${payment.deposit-amount:10000}")
+    private int depositAmount;
+
+    /**
+     * 결제 요청 생성
+     * - orderId 발급
+     * - Payment 엔티티 생성 (PENDING 상태)
+     */
+    @Transactional
+    public Payment createPayment(Long userId, PaymentCreateRequest request) {
+        Reservation reservation = reservationQueryService.getReservationById(request.reservationId());
+        validateReservationOwnership(userId, reservation);
+
+        // 예약 상태 검증 - PENDING 상태에서만 결제 생성 가능
+        if (!reservation.canConfirm()) {
+            throw new PaymentException("INVALID_RESERVATION_STATUS",
+                    "결제 대기 상태의 예약만 결제할 수 있습니다. 현재 상태: " + reservation.getStatus());
+        }
+
+        // 이미 결제가 존재하는지 확인
+        Payment existingPayment = paymentRepository.findByReservationId(request.reservationId());
+        if (existingPayment != null) {
+            throw new PaymentException("PAYMENT_ALREADY_EXISTS", "이미 결제가 존재합니다.");
+        }
+
+        // 택시비 계산
+        int taxiFare = calculateTaxiFare(reservation);
+
+        // orderId 생성
+        String orderId = generateOrderId();
+
+        Payment payment = Payment.builder()
+                .reservation(reservation)
+                .orderId(orderId)
+                .depositAmount(depositAmount)
+                .taxiFare(taxiFare)
+                .method(request.method())
+                .build();
+
+        Payment savedPayment = paymentRepository.save(payment);
+        log.info("결제 요청 생성 - paymentId: {}, orderId: {}, totalAmount: {}",
+                savedPayment.getId(), orderId, savedPayment.getTotalAmount());
+
+        return savedPayment;
+    }
+
+    /**
+     * 결제 승인 처리
+     * 트랜잭션 분리: 검증 → 외부 API → DB 업데이트
+     */
+    public Payment confirmPayment(Long userId, PaymentConfirmRequest request) {
+        // 1. 트랜잭션 1: 검증 (읽기 전용)
+        Payment payment = paymentTransactionService.validateForConfirm(
+                request.orderId(), request.amount());
+        validateReservationOwnership(userId, payment.getReservation());
+
+        // 2. 외부 API 호출 (트랜잭션 밖)
+        TossPaymentResponse tossResponse;
+        try {
+            tossResponse = tossPaymentsClient.confirmPayment(
+                    request.paymentKey(),
+                    request.orderId(),
+                    request.amount()
+            );
+        } catch (Exception e) {
+            log.error("토스페이먼츠 API 호출 실패 - orderId: {}", request.orderId(), e);
+            paymentTransactionService.failConfirm(request.orderId());
+            throw new PaymentException("TOSS_API_ERROR", "결제 승인 중 오류가 발생했습니다.");
+        }
+
+        // 3. 트랜잭션 2: DB 업데이트
+        if (!tossResponse.isApproved()) {
+            return paymentTransactionService.failConfirm(request.orderId());
+        }
+
+        return paymentTransactionService.completeConfirm(request.orderId(), request.paymentKey());
+    }
+
+    /**
+     * 환불 처리
+     * 트랜잭션 분리: 검증 → 외부 API → DB 업데이트
+     */
+    public Payment refundPayment(Long userId, Long paymentId, String cancelReason) {
+        // 1. 트랜잭션 1: 검증 (읽기 전용)
+        Payment payment = paymentTransactionService.validateForRefund(paymentId);
+        validateReservationOwnership(userId, payment.getReservation());
+
+        // 환불 비율 계산
+        int refundRate = calculateRefundRate(payment.getReservation());
+        int refundAmount = payment.getTotalAmount() * refundRate / 100;
+
+        log.info("환불 처리 시작 - paymentId: {}, refundRate: {}%, refundAmount: {}",
+                paymentId, refundRate, refundAmount);
+
+        // 당일 취소: 환불 불가 (외부 API 호출 불필요)
+        if (refundAmount == 0) {
+            return paymentTransactionService.completeNoRefund(
+                    paymentId, cancelReason + " (당일 취소로 환불 불가)");
+        }
+
+        // 2. 외부 API 호출 (트랜잭션 밖)
+        try {
+            if (refundAmount == payment.getTotalAmount().intValue()) {
+                tossPaymentsClient.cancelPayment(payment.getPaymentKey(), cancelReason);
+            } else {
+                tossPaymentsClient.cancelPaymentPartially(payment.getPaymentKey(), cancelReason, refundAmount);
+            }
+        } catch (Exception e) {
+            log.error("토스페이먼츠 환불 API 호출 실패 - paymentId: {}", paymentId, e);
+            throw new PaymentException("TOSS_API_ERROR", "환불 처리 중 오류가 발생했습니다.");
+        }
+
+        // 3. 트랜잭션 2: DB 업데이트
+        if (refundAmount == payment.getTotalAmount().intValue()) {
+            return paymentTransactionService.completeFullRefund(paymentId, cancelReason);
+        } else {
+            return paymentTransactionService.completePartialRefund(paymentId, refundAmount, cancelReason);
+        }
+    }
+
+    /**
+     * 예약 ID로 환불 처리
+     */
+    public Payment refundByReservationId(Long userId, Long reservationId, String cancelReason) {
+        Payment payment = paymentQueryService.getPaymentByReservationIdInternal(reservationId);
+        return refundPayment(userId, payment.getId(), cancelReason);
+    }
+
+    private int calculateTaxiFare(Reservation reservation) {
+        int taxiFare = 0;
+        for (TaxiReservation taxiReservation : reservation.getTaxiReservations()) {
+            if (taxiReservation.getFare() != null) {
+                taxiFare += taxiReservation.getFare();
+            }
+        }
+        return taxiFare;
+    }
+
+    private int calculateRefundRate(Reservation reservation) {
+        HospitalReservation hr = reservation.getHospitalReservation();
+        if (hr == null) {
+            return 0;
+        }
+
+        LocalDateTime reservationTime = hr.getTimeSlot().getDate()
+                .atTime(hr.getTimeSlot().getStartTime());
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        long hoursUntilReservation = ChronoUnit.HOURS.between(now, reservationTime);
+
+        if (hoursUntilReservation >= 24) {
+            return 100;
+        } else if (hoursUntilReservation >= 12) {
+            return 50;
+        } else {
+            return 0;
+        }
+    }
+
+    private String generateOrderId() {
+        return "PETMOA_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
+    }
+
+    private void validateReservationOwnership(Long userId, Reservation reservation) {
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("해당 예약의 소유자가 아닙니다.");
+        }
+    }
+}
