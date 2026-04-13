@@ -214,7 +214,7 @@ class PaymentServiceTest {
                     null
             );
 
-            given(paymentQueryService.getPaymentByOrderId("PETMOA_TEST123456789")).willReturn(testPayment);
+            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
             given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt())).willReturn(tossResponse);
 
             // when
@@ -236,7 +236,7 @@ class PaymentServiceTest {
                     20000  // 실제 금액은 15000
             );
 
-            given(paymentQueryService.getPaymentByOrderId("PETMOA_TEST123456789")).willReturn(testPayment);
+            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
 
             // when & then
             assertThatThrownBy(() -> paymentService.confirmPayment(request))
@@ -269,7 +269,7 @@ class PaymentServiceTest {
                     null
             );
 
-            given(paymentQueryService.getPaymentByOrderId("PETMOA_TEST123456789")).willReturn(testPayment);
+            given(paymentQueryService.getPaymentByOrderIdInternal("PETMOA_TEST123456789")).willReturn(testPayment);
             given(tossPaymentsClient.confirmPayment(anyString(), anyString(), anyInt())).willReturn(tossResponse);
 
             // when & then
@@ -306,7 +306,7 @@ class PaymentServiceTest {
         @DisplayName("성공: 24시간 전 전액 환불")
         void refundPayment_FullRefund() {
             // given
-            given(paymentQueryService.getPaymentById(1L)).willReturn(testPayment);
+            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
             given(tossPaymentsClient.cancelPayment(anyString(), anyString()))
                     .willReturn(createCancelResponse());
 
@@ -331,7 +331,7 @@ class PaymentServiceTest {
                     .build();
             ReflectionTestUtils.setField(pendingPayment, "id", 2L);
 
-            given(paymentQueryService.getPaymentById(2L)).willReturn(pendingPayment);
+            given(paymentQueryService.getPaymentByIdInternal(2L)).willReturn(pendingPayment);
 
             // when & then
             assertThatThrownBy(() -> paymentService.refundPayment(1L, 2L, "고객 요청"))
@@ -345,7 +345,7 @@ class PaymentServiceTest {
         @DisplayName("실패: 다른 사용자의 결제 환불 시도")
         void refundPayment_NotOwner() {
             // given
-            given(paymentQueryService.getPaymentById(1L)).willReturn(testPayment);
+            given(paymentQueryService.getPaymentByIdInternal(1L)).willReturn(testPayment);
 
             // when & then
             assertThatThrownBy(() -> paymentService.refundPayment(999L, 1L, "고객 요청"))

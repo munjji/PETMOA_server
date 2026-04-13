@@ -225,10 +225,11 @@ class PaymentControllerTest {
         @DisplayName("성공: 결제 조회")
         void success() throws Exception {
             // given
-            given(paymentQueryService.getPaymentById(1L)).willReturn(testPayment);
+            given(paymentQueryService.getPaymentById(1L, 1L)).willReturn(testPayment);
 
             // when & then
-            mockMvc.perform(get("/api/v1/payments/1"))
+            mockMvc.perform(get("/api/v1/payments/1")
+                            .header("X-User-Id", "1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true))
                     .andExpect(jsonPath("$.result.orderId").value("PETMOA_TEST123456789"))
@@ -239,12 +240,26 @@ class PaymentControllerTest {
         @DisplayName("실패: 존재하지 않는 결제")
         void failNotFound() throws Exception {
             // given
-            given(paymentQueryService.getPaymentById(999L))
+            given(paymentQueryService.getPaymentById(999L, 1L))
                     .willThrow(new EntityNotFoundException("결제를 찾을 수 없습니다."));
 
             // when & then
-            mockMvc.perform(get("/api/v1/payments/999"))
+            mockMvc.perform(get("/api/v1/payments/999")
+                            .header("X-User-Id", "1"))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 결제 조회 시도")
+        void failNotOwner() throws Exception {
+            // given
+            given(paymentQueryService.getPaymentById(1L, 999L))
+                    .willThrow(new ForbiddenException("해당 결제의 소유자가 아닙니다."));
+
+            // when & then
+            mockMvc.perform(get("/api/v1/payments/1")
+                            .header("X-User-Id", "999"))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -256,14 +271,28 @@ class PaymentControllerTest {
         @DisplayName("성공: 주문 ID로 결제 조회")
         void success() throws Exception {
             // given
-            given(paymentQueryService.getPaymentByOrderId("PETMOA_TEST123456789"))
+            given(paymentQueryService.getPaymentByOrderId("PETMOA_TEST123456789", 1L))
                     .willReturn(testPayment);
 
             // when & then
-            mockMvc.perform(get("/api/v1/payments/orders/PETMOA_TEST123456789"))
+            mockMvc.perform(get("/api/v1/payments/orders/PETMOA_TEST123456789")
+                            .header("X-User-Id", "1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true))
                     .andExpect(jsonPath("$.result.orderId").value("PETMOA_TEST123456789"));
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 결제 조회 시도")
+        void failNotOwner() throws Exception {
+            // given
+            given(paymentQueryService.getPaymentByOrderId("PETMOA_TEST123456789", 999L))
+                    .willThrow(new ForbiddenException("해당 결제의 소유자가 아닙니다."));
+
+            // when & then
+            mockMvc.perform(get("/api/v1/payments/orders/PETMOA_TEST123456789")
+                            .header("X-User-Id", "999"))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -344,13 +373,27 @@ class PaymentControllerTest {
         @DisplayName("성공: 예약 ID로 결제 조회")
         void success() throws Exception {
             // given
-            given(paymentQueryService.getPaymentByReservationId(1L)).willReturn(testPayment);
+            given(paymentQueryService.getPaymentByReservationId(1L, 1L)).willReturn(testPayment);
 
             // when & then
-            mockMvc.perform(get("/api/v1/payments/reservations/1"))
+            mockMvc.perform(get("/api/v1/payments/reservations/1")
+                            .header("X-User-Id", "1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.isSuccess").value(true))
                     .andExpect(jsonPath("$.result.orderId").value("PETMOA_TEST123456789"));
+        }
+
+        @Test
+        @DisplayName("실패: 다른 사용자의 결제 조회 시도")
+        void failNotOwner() throws Exception {
+            // given
+            given(paymentQueryService.getPaymentByReservationId(1L, 999L))
+                    .willThrow(new ForbiddenException("해당 결제의 소유자가 아닙니다."));
+
+            // when & then
+            mockMvc.perform(get("/api/v1/payments/reservations/1")
+                            .header("X-User-Id", "999"))
+                    .andExpect(status().isForbidden());
         }
     }
 }

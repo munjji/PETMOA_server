@@ -43,16 +43,18 @@ public class PaymentController {
     @Operation(summary = "결제 조회", description = "결제 상세 정보를 조회합니다.")
     @GetMapping("/{paymentId}")
     public ApiResponse<PaymentResponse> getPayment(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long paymentId) {
-        Payment payment = paymentQueryService.getPaymentById(paymentId);
+        Payment payment = paymentQueryService.getPaymentById(paymentId, userId);
         return ApiResponse.onSuccess(PaymentResponse.from(payment));
     }
 
     @Operation(summary = "주문 ID로 결제 조회", description = "주문 ID로 결제 정보를 조회합니다.")
     @GetMapping("/orders/{orderId}")
     public ApiResponse<PaymentResponse> getPaymentByOrderId(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable String orderId) {
-        Payment payment = paymentQueryService.getPaymentByOrderId(orderId);
+        Payment payment = paymentQueryService.getPaymentByOrderId(orderId, userId);
         return ApiResponse.onSuccess(PaymentResponse.from(payment));
     }
 
@@ -69,8 +71,9 @@ public class PaymentController {
     @Operation(summary = "예약 ID로 결제 조회", description = "예약 ID로 결제 정보를 조회합니다.")
     @GetMapping("/reservations/{reservationId}")
     public ApiResponse<PaymentResponse> getPaymentByReservationId(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long reservationId) {
-        Payment payment = paymentQueryService.getPaymentByReservationId(reservationId);
+        Payment payment = paymentQueryService.getPaymentByReservationId(reservationId, userId);
         return ApiResponse.onSuccess(PaymentResponse.from(payment));
     }
 }

@@ -83,7 +83,7 @@ public class PaymentService {
      * - 예약 확정
      */
     public Payment confirmPayment(PaymentConfirmRequest request) {
-        Payment payment = paymentQueryService.getPaymentByOrderId(request.orderId());
+        Payment payment = paymentQueryService.getPaymentByOrderIdInternal(request.orderId());
 
         // 결제 상태 검증 - PENDING 상태에서만 승인 가능
         if (!payment.isPending()) {
@@ -133,7 +133,7 @@ public class PaymentService {
      * - Payment 상태 업데이트
      */
     public Payment refundPayment(Long userId, Long paymentId, String cancelReason) {
-        Payment payment = paymentQueryService.getPaymentById(paymentId);
+        Payment payment = paymentQueryService.getPaymentByIdInternal(paymentId);
         validateReservationOwnership(userId, payment.getReservation());
 
         if (!payment.canRefund()) {
@@ -174,7 +174,7 @@ public class PaymentService {
      * 예약 ID로 환불 처리
      */
     public Payment refundByReservationId(Long userId, Long reservationId, String cancelReason) {
-        Payment payment = paymentQueryService.getPaymentByReservationId(reservationId);
+        Payment payment = paymentQueryService.getPaymentByReservationIdInternal(reservationId);
         return refundPayment(userId, payment.getId(), cancelReason);
     }
 
