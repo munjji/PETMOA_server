@@ -20,8 +20,9 @@ import PetMoa.PetMoa.domain.taxi.entity.TaxiStatus;
 import PetMoa.PetMoa.domain.taxi.entity.VehicleSize;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.global.apiPayload.exception.ExceptionAdvice;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import PetMoa.PetMoa.global.security.MockJwtUserArgumentResolver;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -74,10 +75,10 @@ class ReservationControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(reservationController)
+                .setCustomArgumentResolvers(new MockJwtUserArgumentResolver())
                 .setControllerAdvice(new ExceptionAdvice())
                 .build();
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper = JsonMapper.builder().build();
 
         // User
         testUser = User.builder()

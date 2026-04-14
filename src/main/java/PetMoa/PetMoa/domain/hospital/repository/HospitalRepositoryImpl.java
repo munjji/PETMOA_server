@@ -1,6 +1,5 @@
 package PetMoa.PetMoa.domain.hospital.repository;
 
-
 import PetMoa.PetMoa.domain.hospital.dto.HospitalSearchCondition;
 import PetMoa.PetMoa.domain.hospital.entity.Hospital;
 import PetMoa.PetMoa.domain.hospital.entity.QHospital;

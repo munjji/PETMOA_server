@@ -6,8 +6,24 @@
 | 항목 | 내용 |
 |------|------|
 | Base URL | `/api/v1` |
-| 인증 | `X-User-Id` 헤더 (JWT 전환 예정) |
+| 인증 | HttpOnly 쿠키 기반 JWT 인증 (카카오 소셜 로그인) |
 | 역할 | USER (일반 사용자), ADMIN (관리자) |
+
+## 인증 방식
+
+### 쿠키 기반 JWT 인증
+- **Access Token**: `access_token` 쿠키 (30분 유효)
+- **Refresh Token**: `refresh_token` 쿠키 (7일 유효, Redis 저장)
+- 모든 쿠키는 `HttpOnly`, `SameSite=Strict` 설정
+
+### 인증 플로우
+```
+1. 카카오 로그인 (/oauth2/authorization/kakao)
+2. 로그인 성공 → 쿠키에 토큰 자동 설정
+3. API 요청 시 쿠키 자동 전송 (credentials: include)
+4. Access Token 만료 → /api/v1/auth/refresh 호출
+5. 로그아웃 → /api/v1/auth/logout 호출
+```
 
 ## 공통 응답 형식
 
@@ -62,12 +78,77 @@
 
 ---
 
+## 0. 인증 API (Auth)
+
+### 0.1 카카오 로그인 URL 조회
+```
+GET /api/v1/auth/kakao/login-url
+```
+
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": "/oauth2/authorization/kakao"
+}
+```
+
+### 0.2 카카오 로그인 시작
+```
+GET /oauth2/authorization/kakao
+```
+
+> 브라우저에서 직접 접근. 카카오 로그인 페이지로 리다이렉트됨.
+> 로그인 성공 시 설정된 redirect-uri로 이동하며, 쿠키에 토큰이 자동 설정됨.
+
+### 0.3 토큰 갱신
+```
+POST /api/v1/auth/refresh
+Cookie: refresh_token={refreshToken}
+```
+
+> 쿠키에서 Refresh Token을 자동으로 읽어 새로운 토큰 발급.
+> Refresh Token Rotation 적용 (새로운 Refresh Token도 함께 발급).
+
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": null
+}
+```
+
+### 0.4 로그아웃
+```
+POST /api/v1/auth/logout
+Cookie: access_token={accessToken}
+```
+
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": null
+}
+```
+
+> Redis에서 Refresh Token 삭제, 모든 인증 쿠키 삭제
+
+---
+
 ## 1. 사용자 API (User)
+
+> 인증 필요: 쿠키에 `access_token` 필요
 
 ### 1.1 내 정보 조회
 ```
 GET /api/v1/users/me
-X-User-Id: {userId}
 ```
 
 **Response**
@@ -89,7 +170,6 @@ X-User-Id: {userId}
 ### 1.2 내 정보 수정
 ```
 PATCH /api/v1/users/me
-X-User-Id: {userId}
 ```
 
 **Request**
@@ -120,10 +200,11 @@ X-User-Id: {userId}
 
 ## 2. 반려동물 API (Pet)
 
+> 인증 필요: 쿠키에 `access_token` 필요
+
 ### 2.1 내 반려동물 목록 조회
 ```
 GET /api/v1/pets
-X-User-Id: {userId}
 ```
 
 **Response**
@@ -151,7 +232,6 @@ X-User-Id: {userId}
 ### 2.2 반려동물 등록
 ```
 POST /api/v1/pets
-X-User-Id: {userId}
 ```
 
 **Request**
@@ -187,7 +267,6 @@ X-User-Id: {userId}
 ### 2.3 반려동물 정보 수정
 ```
 PATCH /api/v1/pets/{petId}
-X-User-Id: {userId}
 ```
 
 **Request**
@@ -204,7 +283,6 @@ X-User-Id: {userId}
 ### 2.4 반려동물 삭제
 ```
 DELETE /api/v1/pets/{petId}
-X-User-Id: {userId}
 ```
 
 ---
@@ -394,10 +472,11 @@ GET /api/v1/pet-taxis/check-availability
 
 ## 5. 예약 API (Reservation) - 핵심
 
+> 인증 필요: 쿠키에 `access_token` 필요
+
 ### 5.1 통합 예약 생성
 ```
 POST /api/v1/reservations
-X-User-Id: {userId}
 ```
 
 **Request**
@@ -483,7 +562,6 @@ X-User-Id: {userId}
 ### 5.2 내 예약 목록 조회
 ```
 GET /api/v1/reservations
-X-User-Id: {userId}
 ```
 
 **Response**
@@ -528,13 +606,11 @@ X-User-Id: {userId}
 ### 5.3 예약 상세 조회
 ```
 GET /api/v1/reservations/{reservationId}
-X-User-Id: {userId}
 ```
 
 ### 5.4 예약 취소
 ```
 POST /api/v1/reservations/{reservationId}/cancel
-X-User-Id: {userId}
 ```
 
 **Response**
@@ -567,10 +643,11 @@ X-User-Id: {userId}
 
 ## 6. 결제 API (Payment)
 
+> 인증 필요: 쿠키에 `access_token` 필요
+
 ### 6.1 결제 요청 생성
 ```
 POST /api/v1/payments
-X-User-Id: {userId}
 ```
 
 **Request**
@@ -608,7 +685,6 @@ X-User-Id: {userId}
 ### 6.2 결제 승인 요청
 ```
 POST /api/v1/payments/confirm
-X-User-Id: {userId}
 ```
 
 **Request** (토스페이먼츠에서 전달)
@@ -647,25 +723,21 @@ X-User-Id: {userId}
 ### 6.3 결제 조회
 ```
 GET /api/v1/payments/{paymentId}
-X-User-Id: {userId}
 ```
 
 ### 6.4 주문 ID로 결제 조회
 ```
 GET /api/v1/payments/orders/{orderId}
-X-User-Id: {userId}
 ```
 
 ### 6.5 예약 ID로 결제 조회
 ```
 GET /api/v1/payments/reservations/{reservationId}
-X-User-Id: {userId}
 ```
 
 ### 6.6 결제 환불
 ```
 POST /api/v1/payments/{paymentId}/refund
-X-User-Id: {userId}
 ```
 
 **Request**
