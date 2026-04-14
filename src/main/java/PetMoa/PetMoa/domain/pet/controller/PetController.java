@@ -7,9 +7,9 @@ import PetMoa.PetMoa.domain.pet.dto.PetUpdateRequest;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.service.PetCommandService;
 import PetMoa.PetMoa.domain.pet.service.PetQueryService;
-import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.global.apiPayload.ApiResponse;
 import PetMoa.PetMoa.global.security.CurrentUser;
+import PetMoa.PetMoa.global.security.jwt.JwtUserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,36 +28,36 @@ public class PetController {
 
     @Operation(summary = "내 반려동물 목록 조회", description = "현재 로그인한 사용자의 반려동물 목록을 조회합니다.")
     @GetMapping
-    public ApiResponse<PetListResponse> getMyPets(@CurrentUser User user) {
-        List<Pet> pets = petQueryService.getPetsByOwnerId(user.getId());
+    public ApiResponse<PetListResponse> getMyPets(@CurrentUser JwtUserPrincipal principal) {
+        List<Pet> pets = petQueryService.getPetsByOwnerId(principal.getId());
         return ApiResponse.onSuccess(PetListResponse.from(pets));
     }
 
     @Operation(summary = "반려동물 등록", description = "새로운 반려동물을 등록합니다.")
     @PostMapping
     public ApiResponse<PetResponse> createPet(
-            @CurrentUser User user,
+            @CurrentUser JwtUserPrincipal principal,
             @RequestBody PetCreateRequest request) {
-        Pet pet = petCommandService.createPet(user.getId(), request);
+        Pet pet = petCommandService.createPet(principal.getId(), request);
         return ApiResponse.onSuccess(PetResponse.from(pet));
     }
 
     @Operation(summary = "반려동물 정보 수정", description = "반려동물 정보를 수정합니다.")
     @PatchMapping("/{petId}")
     public ApiResponse<PetResponse> updatePet(
-            @CurrentUser User user,
+            @CurrentUser JwtUserPrincipal principal,
             @PathVariable Long petId,
             @RequestBody PetUpdateRequest request) {
-        Pet pet = petCommandService.updatePet(user.getId(), petId, request);
+        Pet pet = petCommandService.updatePet(principal.getId(), petId, request);
         return ApiResponse.onSuccess(PetResponse.from(pet));
     }
 
     @Operation(summary = "반려동물 삭제", description = "반려동물을 삭제합니다.")
     @DeleteMapping("/{petId}")
     public ApiResponse<Void> deletePet(
-            @CurrentUser User user,
+            @CurrentUser JwtUserPrincipal principal,
             @PathVariable Long petId) {
-        petCommandService.deletePet(user.getId(), petId);
+        petCommandService.deletePet(principal.getId(), petId);
         return ApiResponse.onSuccess(null);
     }
 }

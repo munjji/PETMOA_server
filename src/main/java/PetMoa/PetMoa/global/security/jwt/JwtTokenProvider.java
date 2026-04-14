@@ -60,6 +60,11 @@ public class JwtTokenProvider {
         return Long.parseLong(claims.getSubject());
     }
 
+    // 토큰에서 Claims 추출 (외부에서 사용)
+    public Claims getClaimsFromToken(String token) {
+        return parseClaims(token);
+    }
+
     // 토큰 유효성 검증
     public boolean validateToken(String token) {
         try {

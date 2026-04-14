@@ -1,7 +1,7 @@
 package PetMoa.PetMoa.global.security.jwt;
 
-import PetMoa.PetMoa.domain.user.entity.User;
-import PetMoa.PetMoa.domain.user.repository.UserRepository;
+import PetMoa.PetMoa.domain.user.entity.Role;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +20,7 @@ import java.util.Collections;
 
 /**
  * JWT 토큰을 파싱하여 SecurityContext에 인증 정보를 설정하는 필터
- * 쿠키 또는 Authorization 헤더에서 토큰을 읽음
+ * DB 조회 없이 토큰 정보만으로 인증 처리
  */
 @Slf4j
 @Component
@@ -28,7 +28,6 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
     private final CookieUtils cookieUtils;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -41,21 +40,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
             try {
-                Long userId = jwtTokenProvider.getUserIdFromToken(token);
-                User user = userRepository.findById(userId).orElse(null);
+                // 토큰에서 사용자 정보 추출 (DB 조회 없음)
+                Claims claims = jwtTokenProvider.getClaimsFromToken(token);
+                Long userId = Long.parseLong(claims.getSubject());
+                String email = claims.get("email", String.class);
+                Role role = Role.valueOf(claims.get("role", String.class));
 
-                if (user != null) {
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    user,
-                                    null,
-                                    Collections.singletonList(
-                                            new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-                            );
+                JwtUserPrincipal principal = JwtUserPrincipal.of(userId, email, role);
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("JWT authentication success - userId: {}", userId);
-                }
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                principal,
+                                null,
+                                Collections.singletonList(
+                                        new SimpleGrantedAuthority("ROLE_" + role.name()))
+                        );
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("JWT authentication success - userId: {}", userId);
             } catch (Exception e) {
                 log.warn("JWT authentication failed: {}", e.getMessage());
             }

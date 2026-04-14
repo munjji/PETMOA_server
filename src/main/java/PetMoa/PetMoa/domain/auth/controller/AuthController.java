@@ -1,10 +1,10 @@
 package PetMoa.PetMoa.domain.auth.controller;
 
 import PetMoa.PetMoa.domain.auth.service.AuthService;
-import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.global.apiPayload.ApiResponse;
 import PetMoa.PetMoa.global.security.CurrentUser;
 import PetMoa.PetMoa.global.security.jwt.CookieUtils;
+import PetMoa.PetMoa.global.security.jwt.JwtUserPrincipal;
 import PetMoa.PetMoa.global.security.jwt.TokenResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,10 +50,10 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "Refresh Token을 삭제하고 쿠키를 제거합니다.")
     @PostMapping("/logout")
     public ApiResponse<Void> logout(
-            @CurrentUser User user,
+            @CurrentUser JwtUserPrincipal principal,
             HttpServletResponse response) {
         // Redis에서 Refresh Token 삭제
-        authService.logout(user.getId());
+        authService.logout(principal.getId());
 
         // 쿠키 삭제
         cookieUtils.deleteAllAuthCookies(response);
