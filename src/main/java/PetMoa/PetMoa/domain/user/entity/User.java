@@ -23,25 +23,14 @@ public class User {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @Column(unique = true, length = 20)
+    @Column(nullable = false, unique = true, length = 20)
     private String phoneNumber;
 
-    @Column(length = 200)
+    @Column(nullable = false, length = 200)
     private String address;
 
     @Column(length = 100)
     private String email;
-
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private AuthProvider provider;
-
-    @Column(unique = true)
-    private String providerId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Role role = Role.USER;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Pet> pets = new ArrayList<>();
@@ -61,43 +50,31 @@ public class User {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     @Builder
-    public User(String name, String phoneNumber, String address, String email,
-                AuthProvider provider, String providerId, Role role) {
-        validateFields(name, phoneNumber, address, email, provider);
+    public User(String name, String phoneNumber, String address, String email) {
+        validateFields(name, phoneNumber, address, email);
 
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.address = address;
         this.email = email;
-        this.provider = provider;
-        this.providerId = providerId;
-        this.role = (role != null) ? role : Role.USER;
         this.createdAt = LocalDateTime.now();
     }
 
-    private void validateFields(String name, String phoneNumber, String address, String email, AuthProvider provider) {
+    private void validateFields(String name, String phoneNumber, String address, String email) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("이름은 필수입니다.");
         }
 
-        // 소셜 로그인이 아닌 경우에만 전화번호, 주소 필수
-        if (provider == null) {
-            if (phoneNumber == null || phoneNumber.isBlank()) {
-                throw new IllegalArgumentException("전화번호는 필수입니다.");
-            }
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            throw new IllegalArgumentException("전화번호는 필수입니다.");
+        }
 
-            if (!PHONE_PATTERN.matcher(phoneNumber).matches()) {
-                throw new IllegalArgumentException("전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678 또는 01012345678)");
-            }
+        if (!PHONE_PATTERN.matcher(phoneNumber).matches()) {
+            throw new IllegalArgumentException("전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678 또는 01012345678)");
+        }
 
-            if (address == null || address.isBlank()) {
-                throw new IllegalArgumentException("주소는 필수입니다.");
-            }
-        } else {
-            // 소셜 로그인인 경우에도 전화번호가 있으면 형식 검증
-            if (phoneNumber != null && !phoneNumber.isBlank() && !PHONE_PATTERN.matcher(phoneNumber).matches()) {
-                throw new IllegalArgumentException("전화번호 형식이 올바르지 않습니다. (예: 010-1234-5678 또는 01012345678)");
-            }
+        if (address == null || address.isBlank()) {
+            throw new IllegalArgumentException("주소는 필수입니다.");
         }
 
         if (email != null && !email.isBlank() && !EMAIL_PATTERN.matcher(email).matches()) {
@@ -120,19 +97,6 @@ public class User {
         }
         if (address != null && !address.isBlank()) {
             this.address = address;
-        }
-    }
-
-    // 소셜 로그인 사용자 프로필 업데이트
-    public void updateSocialProfile(String name, String email) {
-        if (name != null && !name.isBlank()) {
-            this.name = name;
-        }
-        if (email != null && !email.isBlank()) {
-            if (!EMAIL_PATTERN.matcher(email).matches()) {
-                throw new IllegalArgumentException("이메일 형식이 올바르지 않습니다.");
-            }
-            this.email = email;
         }
     }
 
