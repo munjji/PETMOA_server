@@ -1,12 +1,12 @@
 
-# 🐱PetMoa API 스펙 문서
+# PetMoa API 스펙 문서
 
 ## 개요
 
 | 항목 | 내용 |
 |------|------|
 | Base URL | `/api/v1` |
-| 인증 | JWT Bearer Token (추후 구현) |
+| 인증 | `X-User-Id` 헤더 (JWT 전환 예정) |
 | 역할 | USER (일반 사용자), ADMIN (관리자) |
 
 ## 공통 응답 형식
@@ -67,7 +67,7 @@
 ### 1.1 내 정보 조회
 ```
 GET /api/v1/users/me
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 **Response**
@@ -81,8 +81,7 @@ Authorization: Bearer {token}
     "name": "홍길동",
     "email": "hong@example.com",
     "phoneNumber": "010-1234-5678",
-    "address": "서울시 강남구",
-    "role": "USER"
+    "address": "서울시 강남구"
   }
 }
 ```
@@ -90,7 +89,7 @@ Authorization: Bearer {token}
 ### 1.2 내 정보 수정
 ```
 PATCH /api/v1/users/me
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 **Request**
@@ -101,6 +100,22 @@ Authorization: Bearer {token}
 }
 ```
 
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": {
+    "id": 1,
+    "name": "홍길동",
+    "email": "hong@example.com",
+    "phoneNumber": "010-9999-8888",
+    "address": "서울시 서초구"
+  }
+}
+```
+
 ---
 
 ## 2. 반려동물 API (Pet)
@@ -108,7 +123,7 @@ Authorization: Bearer {token}
 ### 2.1 내 반려동물 목록 조회
 ```
 GET /api/v1/pets
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 **Response**
@@ -136,7 +151,7 @@ Authorization: Bearer {token}
 ### 2.2 반려동물 등록
 ```
 POST /api/v1/pets
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 **Request**
@@ -151,16 +166,45 @@ Authorization: Bearer {token}
 }
 ```
 
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON201",
+  "message": "성공입니다.",
+  "result": {
+    "id": 1,
+    "name": "뽀삐",
+    "type": "DOG",
+    "size": "SMALL",
+    "breed": "말티즈",
+    "age": 3,
+    "weight": 4.5
+  }
+}
+```
+
 ### 2.3 반려동물 정보 수정
 ```
 PATCH /api/v1/pets/{petId}
-Authorization: Bearer {token}
+X-User-Id: {userId}
+```
+
+**Request**
+```json
+{
+  "name": "뽀삐",
+  "size": "MEDIUM",
+  "age": 4,
+  "weight": 5.0,
+  "breed": "말티즈"
+}
 ```
 
 ### 2.4 반려동물 삭제
 ```
 DELETE /api/v1/pets/{petId}
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 ---
@@ -173,16 +217,15 @@ GET /api/v1/hospitals
 ```
 
 **Query Parameters**
-```
 | 파라미터 | 타입 | 필수 | 설명 |
 |---------|------|------|------|
-| name | string | Y | 병원 이름 검색 |
-| address | string | Y | 주소 검색 |
-| petType | string | Y | 진료 가능 동물 (DOG, CAT, BIRD 등) |
-| lat | double | Y | 위도 (근처 검색용) |
-| lng | double | Y | 경도 (근처 검색용) |
-| radius | double | Y | 검색 반경 km (기본값: 5) |
-```
+| petType | string | N | 진료 가능 동물 (DOG, CAT, BIRD 등) |
+| lat | double | N | 위도 (근처 검색용) |
+| lng | double | N | 경도 (근처 검색용) |
+| radius | double | N | 검색 반경 km (기본값: 5) |
+| name | string | N | 병원 이름 검색 |
+| address | string | N | 주소 검색 |
+
 **Response**
 ```json
 {
@@ -230,8 +273,8 @@ GET /api/v1/hospitals/{hospitalId}
         "id": 1,
         "name": "김수의",
         "department": "GENERAL",
-        "workStartTime": "09:00",
-        "workEndTime": "18:00"
+        "workStartTime": "09:00:00",
+        "workEndTime": "18:00:00"
       }
     ]
   }
@@ -243,17 +286,36 @@ GET /api/v1/hospitals/{hospitalId}
 GET /api/v1/hospitals/{hospitalId}/veterinarians
 ```
 
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": {
+    "veterinarians": [
+      {
+        "id": 1,
+        "name": "김수의",
+        "department": "GENERAL",
+        "workStartTime": "09:00:00",
+        "workEndTime": "18:00:00"
+      }
+    ]
+  }
+}
+```
+
 ### 3.4 수의사 예약 가능 시간 조회
 ```
-GET /api/v1/hospitals/{hospitalId}/veterinarians/{vetId}/time-slots
+GET /api/v1/hospitals/{hospitalId}/veterinarians/{vetId}/time-slots?date={date}
 ```
 
 **Query Parameters**
-```
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| date | string | 조회 날짜 (YYYY-MM-DD) |
-```
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| date | string | Y | 조회 날짜 (YYYY-MM-DD) |
+
 **Response**
 ```json
 {
@@ -270,16 +332,16 @@ GET /api/v1/hospitals/{hospitalId}/veterinarians/{vetId}/time-slots
     "timeSlots": [
       {
         "id": 1,
-        "startTime": "09:00",
-        "endTime": "10:00",
+        "startTime": "09:00:00",
+        "endTime": "10:00:00",
         "capacity": 3,
         "currentReservations": 1,
         "available": true
       },
       {
         "id": 2,
-        "startTime": "10:00",
-        "endTime": "11:00",
+        "startTime": "10:00:00",
+        "endTime": "11:00:00",
         "capacity": 3,
         "currentReservations": 3,
         "available": false
@@ -302,13 +364,11 @@ GET /api/v1/pet-taxis/check-availability
 ```
 
 **Query Parameters**
-```
 | 파라미터 | 타입 | 필수 | 설명 |
 |---------|------|------|------|
 | petSize | string | Y | 반려동물 크기 (SMALL, MEDIUM, LARGE) |
 | pickupTime | string | Y | 픽업 희망 시간 (ISO 8601) |
 | pickupAddress | string | Y | 출발지 주소 |
-```
 
 **Response**
 ```json
@@ -337,7 +397,7 @@ GET /api/v1/pet-taxis/check-availability
 ### 5.1 통합 예약 생성
 ```
 POST /api/v1/reservations
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 **Request**
@@ -381,20 +441,25 @@ Authorization: Bearer {token}
 {
   "isSuccess": true,
   "code": "COMMON201",
-  "message": "요청 성공 및 리소스 생성됨",
+  "message": "성공입니다.",
   "result": {
-    "reservationId": 1,
+    "id": 1,
     "status": "PENDING_PAYMENT",
+    "createdAt": "2024-01-10T14:30:00",
+    "pet": {
+      "id": 1,
+      "name": "뽀삐"
+    },
     "hospitalReservation": {
       "hospitalName": "강남동물병원",
       "veterinarianName": "김수의",
       "date": "2024-01-15",
-      "time": "09:00-10:00"
+      "time": "09:00:00-10:00:00"
     },
     "taxiDispatch": [
       {
         "type": "PICKUP",
-        "status": "ASSIGNED",
+        "status": "PENDING",
         "driverName": "홍길동",
         "driverPhoneNumber": "010-1234-5678",
         "vehicleNumber": "서울12가3456",
@@ -403,23 +468,14 @@ Authorization: Bearer {token}
       },
       {
         "type": "RETURN",
-        "status": "ASSIGNED",
+        "status": "PENDING",
         "driverName": "김철수",
         "driverPhoneNumber": "010-2222-3333",
         "vehicleNumber": "서울34나5678",
         "scheduledTime": "2024-01-15T11:00:00",
         "estimatedFee": 10000
       }
-    ],
-    "payment": {
-      "totalAmount": 35000,
-      "breakdown": {
-        "depositAmount": 10000,
-        "pickupTaxiFee": 15000,
-        "returnTaxiFee": 10000
-      },
-      "paymentUrl": "https://pay.toss.im/..."
-    }
+    ]
   }
 }
 ```
@@ -427,17 +483,9 @@ Authorization: Bearer {token}
 ### 5.2 내 예약 목록 조회
 ```
 GET /api/v1/reservations
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
-**Query Parameters**
-```
-| 파라미터 | 타입 | 설명 |
-|---------|------|------|
-| status | string | 상태 필터 (PENDING, CONFIRMED, COMPLETED, CANCELLED) |
-| from | string | 시작 날짜 |
-| to | string | 종료 날짜 |
-```
 **Response**
 ```json
 {
@@ -455,24 +503,22 @@ Authorization: Bearer {token}
           "name": "뽀삐"
         },
         "hospitalReservation": {
-          "hospital": "강남동물병원",
-          "veterinarian": "김수의",
+          "hospitalName": "강남동물병원",
+          "veterinarianName": "김수의",
           "date": "2024-01-15",
-          "time": "09:00-10:00"
+          "time": "09:00:00-10:00:00"
         },
         "taxiDispatch": [
           {
             "type": "PICKUP",
             "status": "ASSIGNED",
             "driverName": "홍길동",
+            "driverPhoneNumber": "010-1234-5678",
             "vehicleNumber": "서울12가3456",
-            "scheduledTime": "2024-01-15T08:30:00"
+            "scheduledTime": "2024-01-15T08:30:00",
+            "estimatedFee": 15000
           }
-        ],
-        "payment": {
-          "totalAmount": 25000,
-          "status": "PAID"
-        }
+        ]
       }
     ]
   }
@@ -482,13 +528,13 @@ Authorization: Bearer {token}
 ### 5.3 예약 상세 조회
 ```
 GET /api/v1/reservations/{reservationId}
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 ### 5.4 예약 취소
 ```
 POST /api/v1/reservations/{reservationId}/cancel
-Authorization: Bearer {token}
+X-User-Id: {userId}
 ```
 
 **Response**
@@ -503,49 +549,161 @@ Authorization: Bearer {token}
     "refund": {
       "refundAmount": 25000,
       "refundRate": 100,
-      "reason": "24시간 전 취소"
+      "reason": "24시간 전 취소",
+      "refundProcessed": true
     }
   }
 }
 ```
 
 **환불 정책**
-```
 | 취소 시점 | 환불률 |
 |----------|--------|
 | 24시간 전 | 100% |
 | 12시간 전 | 50% |
 | 당일 | 0% |
-```
+
 ---
 
 ## 6. 결제 API (Payment)
 
-### 6.1 결제 확인 (토스페이먼츠 콜백)
+### 6.1 결제 요청 생성
+```
+POST /api/v1/payments
+X-User-Id: {userId}
+```
+
+**Request**
+```json
+{
+  "reservationId": 1,
+  "method": "CARD"
+}
+```
+
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": {
+    "paymentId": 1,
+    "reservationId": 1,
+    "orderId": "ORDER_20240115_ABC123",
+    "paymentKey": null,
+    "totalAmount": 25000,
+    "depositAmount": 10000,
+    "taxiFare": 15000,
+    "status": "PENDING",
+    "method": "CARD",
+    "paidAt": null,
+    "cancelledAt": null,
+    "refundAmount": null,
+    "cancelReason": null
+  }
+}
+```
+
+### 6.2 결제 승인 요청
 ```
 POST /api/v1/payments/confirm
+X-User-Id: {userId}
 ```
 
 **Request** (토스페이먼츠에서 전달)
 ```json
 {
   "paymentKey": "toss_payment_key",
-  "orderId": "order_123",
+  "orderId": "ORDER_20240115_ABC123",
   "amount": 25000
 }
 ```
 
-### 6.2 결제 내역 조회
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": {
+    "paymentId": 1,
+    "reservationId": 1,
+    "orderId": "ORDER_20240115_ABC123",
+    "paymentKey": "toss_payment_key",
+    "totalAmount": 25000,
+    "depositAmount": 10000,
+    "taxiFare": 15000,
+    "status": "APPROVED",
+    "method": "CARD",
+    "paidAt": "2024-01-15T14:35:00",
+    "cancelledAt": null,
+    "refundAmount": null,
+    "cancelReason": null
+  }
+}
+```
+
+### 6.3 결제 조회
 ```
 GET /api/v1/payments/{paymentId}
-Authorization: Bearer {token}
+X-User-Id: {userId}
+```
+
+### 6.4 주문 ID로 결제 조회
+```
+GET /api/v1/payments/orders/{orderId}
+X-User-Id: {userId}
+```
+
+### 6.5 예약 ID로 결제 조회
+```
+GET /api/v1/payments/reservations/{reservationId}
+X-User-Id: {userId}
+```
+
+### 6.6 결제 환불
+```
+POST /api/v1/payments/{paymentId}/refund
+X-User-Id: {userId}
+```
+
+**Request**
+```json
+{
+  "cancelReason": "고객 요청으로 취소"
+}
+```
+
+**Response**
+```json
+{
+  "isSuccess": true,
+  "code": "COMMON200",
+  "message": "성공입니다.",
+  "result": {
+    "paymentId": 1,
+    "reservationId": 1,
+    "orderId": "ORDER_20240115_ABC123",
+    "paymentKey": "toss_payment_key",
+    "totalAmount": 25000,
+    "depositAmount": 10000,
+    "taxiFare": 15000,
+    "status": "CANCELLED",
+    "method": "CARD",
+    "paidAt": "2024-01-15T14:35:00",
+    "cancelledAt": "2024-01-15T15:00:00",
+    "refundAmount": 25000,
+    "cancelReason": "고객 요청으로 취소"
+  }
+}
 ```
 
 ---
 
-## 7. 관리자 API (Admin)
+## 7. 관리자 API (Admin) - 미구현
 
-> 모든 관리자 API는 ADMIN 역할 필요
+> 모든 관리자 API는 ADMIN 역할 필요 (추후 구현 예정)
 
 ### 7.1 병원 관리
 
@@ -631,13 +789,13 @@ PATCH  /api/v1/admin/reservations/{reservationId}/status        # 예약 상태 
 | CANCELLED | 취소됨 |
 | NO_SHOW | 노쇼 |
 
-### TaxiRequestType (택시 요청 유형)
+### TaxiReservationType (택시 요청 유형)
 | 값 | 설명 |
 |----|------|
 | PICKUP | 픽업 (집 → 병원) |
 | RETURN | 귀가 (병원 → 집) |
 
-### TaxiDispatchStatus (택시 배차 상태)
+### TaxiReservationStatus (택시 배차 상태)
 | 값 | 설명 |
 |----|------|
 | PENDING | 배차 대기 |
@@ -650,9 +808,21 @@ PATCH  /api/v1/admin/reservations/{reservationId}/status        # 예약 상태 
 | 값 | 설명 |
 |----|------|
 | PENDING | 결제 대기 |
-| PAID | 결제 완료 |
-| REFUNDED | 환불됨 |
-| PARTIALLY_REFUNDED | 부분 환불 |
+| APPROVED | 승인 완료 |
+| CANCELLED | 취소 |
+| PARTIAL_CANCELLED | 부분 취소 |
+| FAILED | 실패 |
+
+### PaymentMethod (결제 수단)
+| 값 | 설명 |
+|----|------|
+| CARD | 카드 |
+| VIRTUAL_ACCOUNT | 가상계좌 |
+| TRANSFER | 계좌이체 |
+| MOBILE_PHONE | 휴대폰 |
+| TOSS_PAY | 토스페이 |
+| KAKAO_PAY | 카카오페이 |
+| NAVER_PAY | 네이버페이 |
 
 ### MedicalDepartment (진료과목)
 | 값 | 설명 |
@@ -664,4 +834,3 @@ PATCH  /api/v1/admin/reservations/{reservationId}/status        # 예약 상태 
 | OPHTHALMOLOGY | 안과 |
 | DENTISTRY | 치과 |
 | EMERGENCY | 응급 |
-
