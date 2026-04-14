@@ -170,7 +170,7 @@ X-User-Id: {userId}
 ```json
 {
   "isSuccess": true,
-  "code": "COMMON200",
+  "code": "COMMON201",
   "message": "성공입니다.",
   "result": {
     "id": 1,
@@ -242,7 +242,7 @@ GET /api/v1/hospitals
         "latitude": 37.5,
         "longitude": 127.0,
         "availablePetTypes": ["DOG", "CAT"],
-        "distance": null
+        "distance": 1.2
       }
     ]
   }
@@ -440,7 +440,7 @@ X-User-Id: {userId}
 ```json
 {
   "isSuccess": true,
-  "code": "COMMON200",
+  "code": "COMMON201",
   "message": "성공입니다.",
   "result": {
     "id": 1,
@@ -465,6 +465,15 @@ X-User-Id: {userId}
         "vehicleNumber": "서울12가3456",
         "scheduledTime": "2024-01-15T08:30:00",
         "estimatedFee": 15000
+      },
+      {
+        "type": "RETURN",
+        "status": "PENDING",
+        "driverName": "김철수",
+        "driverPhoneNumber": "010-2222-3333",
+        "vehicleNumber": "서울34나5678",
+        "scheduledTime": "2024-01-15T11:00:00",
+        "estimatedFee": 10000
       }
     ]
   }
@@ -596,7 +605,7 @@ X-User-Id: {userId}
 }
 ```
 
-### 6.2 결제 승인 (토스페이먼츠 콜백)
+### 6.2 결제 승인 요청
 ```
 POST /api/v1/payments/confirm
 X-User-Id: {userId}
