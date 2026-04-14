@@ -57,14 +57,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         log.debug("Kakao user info - providerId: {}, nickname: {}, email: {}",
                 providerId, nickname, email);
 
-        // 기존 사용자 조회 또는 신규 생성
+        // 기존 사용자 업데이트 또는 신규 생성
         User user = userRepository.findByProviderAndProviderId(AuthProvider.KAKAO, providerId)
+                .map(existingUser -> {
+                    existingUser.updateSocialProfile(nickname, email);
+                    return existingUser;
+                })
                 .orElseGet(() -> createNewUser(providerId, nickname, email));
-
-        // 기존 사용자라면 프로필 업데이트
-        if (user.getId() != null) {
-            user.updateSocialProfile(nickname, email);
-        }
 
         return new CustomOAuth2User(user, attributes);
     }
