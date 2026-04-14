@@ -17,7 +17,8 @@ import PetMoa.PetMoa.global.apiPayload.exception.ExceptionAdvice;
 import PetMoa.PetMoa.global.security.MockJwtUserArgumentResolver;
 import PetMoa.PetMoa.global.exception.ForbiddenException;
 import PetMoa.PetMoa.global.exception.PaymentException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -69,7 +70,7 @@ class PaymentControllerTest {
                 .setCustomArgumentResolvers(new MockJwtUserArgumentResolver())
                 .setControllerAdvice(new ExceptionAdvice())
                 .build();
-        objectMapper = new ObjectMapper();
+        objectMapper = JsonMapper.builder().build();
 
         testUser = User.builder()
                 .name("홍길동")
