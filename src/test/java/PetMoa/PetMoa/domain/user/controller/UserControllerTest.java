@@ -5,6 +5,7 @@ import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.service.UserCommandService;
 import PetMoa.PetMoa.domain.user.service.UserQueryService;
 import PetMoa.PetMoa.global.apiPayload.exception.ExceptionAdvice;
+import PetMoa.PetMoa.global.security.MockJwtUserArgumentResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +47,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(userController)
+                .setCustomArgumentResolvers(new MockJwtUserArgumentResolver())
                 .setControllerAdvice(new ExceptionAdvice())
                 .build();
         objectMapper = new ObjectMapper();
