@@ -20,6 +20,7 @@ import java.util.Collections;
 
 /**
  * JWT 토큰을 파싱하여 SecurityContext에 인증 정보를 설정하는 필터
+ * 쿠키 또는 Authorization 헤더에서 토큰을 읽음
  */
 @Slf4j
 @Component
@@ -28,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final CookieUtils cookieUtils;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -62,11 +64,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * 쿠키 우선, 없으면 Authorization 헤더에서 토큰 추출
+     */
     private String resolveToken(HttpServletRequest request) {
+        // 1. 쿠키에서 Access Token 확인
+        String cookieToken = cookieUtils.getCookieValue(request, CookieUtils.ACCESS_TOKEN_COOKIE)
+                .orElse(null);
+        if (StringUtils.hasText(cookieToken)) {
+            return cookieToken;
+        }
+
+        // 2. Authorization 헤더에서 Bearer 토큰 확인 (하위 호환성)
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(BEARER_PREFIX.length());
         }
+
         return null;
     }
 }
