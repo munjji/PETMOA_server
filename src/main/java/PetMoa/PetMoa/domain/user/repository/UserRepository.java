@@ -1,5 +1,6 @@
 package PetMoa.PetMoa.domain.user.repository;
 
+import PetMoa.PetMoa.domain.user.entity.AuthProvider;
 import PetMoa.PetMoa.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -10,4 +11,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPhoneNumber(String phoneNumber);
 
     boolean existsByPhoneNumber(String phoneNumber);
+
+    // 소셜 로그인용
+    Optional<User> findByProviderAndProviderId(AuthProvider provider, String providerId);
+
+    Optional<User> findByEmail(String email);
 }
