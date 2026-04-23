@@ -70,6 +70,9 @@ public class PaymentTransactionService {
 
         log.info("결제 승인 완료 - paymentId: {}, paymentKey: {}", payment.getId(), paymentKey);
 
+        // 예약 확정 이벤트 발행
+        publishReservationConfirmedEvent(payment);
+
         // 결제 완료 이벤트 발행
         publishPaymentCompletedEvent(payment);
 
@@ -156,6 +159,25 @@ public class PaymentTransactionService {
         payment.cancelWithNoRefund(cancelReason);
         log.info("당일 취소로 환불 불가 - paymentId: {}", paymentId);
         return payment;
+    }
+
+    private void publishReservationConfirmedEvent(Payment payment) {
+        Reservation reservation = payment.getReservation();
+        Map<String, Object> payload = Map.of(
+                "reservationId", reservation.getId(),
+                "petName", reservation.getPet().getName(),
+                "hospitalName", reservation.getHospitalReservation().getVeterinarian().getHospital().getName(),
+                "reservationDate", reservation.getHospitalReservation().getTimeSlot().getDate().toString(),
+                "reservationTime", reservation.getHospitalReservation().getTimeSlot().getStartTime().toString()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.RESERVATION_CONFIRMED,
+                reservation.getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
     }
 
     private void publishPaymentCompletedEvent(Payment payment) {
