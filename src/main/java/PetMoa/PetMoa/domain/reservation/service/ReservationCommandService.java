@@ -2,6 +2,9 @@ package PetMoa.PetMoa.domain.reservation.service;
 
 import PetMoa.PetMoa.domain.hospital.entity.TimeSlot;
 import PetMoa.PetMoa.domain.hospital.service.TimeSlotQueryService;
+import PetMoa.PetMoa.domain.notification.dto.NotificationEvent;
+import PetMoa.PetMoa.domain.notification.dto.NotificationEventType;
+import PetMoa.PetMoa.domain.notification.publisher.NotificationEventPublisher;
 import PetMoa.PetMoa.domain.pet.entity.Pet;
 import PetMoa.PetMoa.domain.pet.service.PetQueryService;
 import PetMoa.PetMoa.domain.reservation.dto.CancellationResult;
@@ -16,6 +19,7 @@ import PetMoa.PetMoa.domain.taxi.service.PetTaxiQueryService;
 import PetMoa.PetMoa.domain.user.entity.User;
 import PetMoa.PetMoa.domain.user.service.UserQueryService;
 import PetMoa.PetMoa.global.exception.ForbiddenException;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,11 +38,13 @@ public class ReservationCommandService {
     private final ReservationRepository reservationRepository;
     private final HospitalReservationRepository hospitalReservationRepository;
     private final TaxiReservationRepository taxiReservationRepository;
+    private final EntityManager entityManager;
 
     private final UserQueryService userQueryService;
     private final PetQueryService petQueryService;
     private final TimeSlotQueryService timeSlotQueryService;
     private final PetTaxiQueryService petTaxiQueryService;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     private static final int DEPOSIT_AMOUNT = 10000;
 
@@ -88,10 +95,22 @@ public class ReservationCommandService {
                         .type(taxiRequest.type())
                         .build();
                 taxiReservationRepository.save(taxiReservation);
+
+                // 택시 배차 이벤트 발행
+                publishTaxiAssignedEvent(taxiReservation, user);
             }
         }
 
-        return reservationRepository.findByIdWithDetails(reservation.getId());
+        // 영속성 컨텍스트를 flush하고 clear하여 DB에서 새로 조회
+        entityManager.flush();
+        entityManager.clear();
+
+        Reservation savedReservation = reservationRepository.findByIdWithDetails(reservation.getId());
+
+        // 예약 생성 이벤트 발행
+        publishReservationCreatedEvent(savedReservation);
+
+        return savedReservation;
     }
 
     public CancellationResult cancelReservation(Long userId, Long reservationId) {
@@ -118,6 +137,9 @@ public class ReservationCommandService {
         if (hospitalReservation != null) {
             hospitalReservation.getTimeSlot().decrementReservations();
         }
+
+        // 예약 취소 이벤트 발행
+        publishReservationCancelledEvent(reservation);
 
         return CancellationResult.of(reservation, refundRate);
     }
@@ -162,5 +184,57 @@ public class ReservationCommandService {
         if (!reservation.getUser().getId().equals(userId)) {
             throw new ForbiddenException("해당 예약의 소유자가 아닙니다.");
         }
+    }
+
+    private void publishReservationCreatedEvent(Reservation reservation) {
+        Map<String, Object> payload = Map.of(
+                "reservationId", reservation.getId(),
+                "petName", reservation.getPet().getName(),
+                "hospitalName", reservation.getHospitalReservation().getVeterinarian().getHospital().getName(),
+                "reservationDate", reservation.getHospitalReservation().getTimeSlot().getDate().toString(),
+                "reservationTime", reservation.getHospitalReservation().getTimeSlot().getStartTime().toString()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.RESERVATION_CREATED,
+                reservation.getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
+    }
+
+    private void publishReservationCancelledEvent(Reservation reservation) {
+        Map<String, Object> payload = Map.of(
+                "reservationId", reservation.getId(),
+                "petName", reservation.getPet().getName()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.RESERVATION_CANCELLED,
+                reservation.getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
+    }
+
+    private void publishTaxiAssignedEvent(TaxiReservation taxiReservation, User user) {
+        Map<String, Object> payload = Map.of(
+                "taxiReservationId", taxiReservation.getId(),
+                "driverName", taxiReservation.getTaxi().getDriverName(),
+                "licensePlate", taxiReservation.getTaxi().getLicensePlate(),
+                "pickupTime", taxiReservation.getPickupTime().toString(),
+                "pickupAddress", taxiReservation.getPickupAddress(),
+                "dropoffAddress", taxiReservation.getDropoffAddress()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.TAXI_ASSIGNED,
+                user,
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
     }
 }
