@@ -1,5 +1,8 @@
 package PetMoa.PetMoa.domain.payment.service;
 
+import PetMoa.PetMoa.domain.notification.dto.NotificationEvent;
+import PetMoa.PetMoa.domain.notification.dto.NotificationEventType;
+import PetMoa.PetMoa.domain.notification.publisher.NotificationEventPublisher;
 import PetMoa.PetMoa.domain.payment.entity.Payment;
 import PetMoa.PetMoa.domain.payment.repository.PaymentRepository;
 import PetMoa.PetMoa.domain.reservation.entity.Reservation;
@@ -8,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 /**
  * 결제 관련 DB 트랜잭션 처리 전담 서비스
@@ -20,6 +25,7 @@ public class PaymentTransactionService {
 
     private final PaymentRepository paymentRepository;
     private final PaymentQueryService paymentQueryService;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     /**
      * 결제 승인 전 검증 (트랜잭션 1)
@@ -63,6 +69,13 @@ public class PaymentTransactionService {
         payment.getReservation().confirm();
 
         log.info("결제 승인 완료 - paymentId: {}, paymentKey: {}", payment.getId(), paymentKey);
+
+        // 예약 확정 이벤트 발행
+        publishReservationConfirmedEvent(payment);
+
+        // 결제 완료 이벤트 발행
+        publishPaymentCompletedEvent(payment);
+
         return payment;
     }
 
@@ -74,6 +87,10 @@ public class PaymentTransactionService {
         Payment payment = paymentQueryService.getPaymentByOrderIdInternal(orderId);
         payment.fail();
         log.info("결제 승인 실패 - paymentId: {}", payment.getId());
+
+        // 결제 실패 이벤트 발행
+        publishPaymentFailedEvent(payment);
+
         return payment;
     }
 
@@ -105,6 +122,10 @@ public class PaymentTransactionService {
 
         payment.cancel(cancelReason);
         log.info("전액 환불 완료 - paymentId: {}", paymentId);
+
+        // 환불 완료 이벤트 발행
+        publishPaymentRefundedEvent(payment);
+
         return payment;
     }
 
@@ -122,6 +143,10 @@ public class PaymentTransactionService {
 
         payment.partialCancel(refundAmount, cancelReason);
         log.info("부분 환불 완료 - paymentId: {}, refundAmount: {}", paymentId, refundAmount);
+
+        // 환불 완료 이벤트 발행
+        publishPaymentRefundedEvent(payment);
+
         return payment;
     }
 
@@ -134,5 +159,72 @@ public class PaymentTransactionService {
         payment.cancelWithNoRefund(cancelReason);
         log.info("당일 취소로 환불 불가 - paymentId: {}", paymentId);
         return payment;
+    }
+
+    private void publishReservationConfirmedEvent(Payment payment) {
+        Reservation reservation = payment.getReservation();
+        Map<String, Object> payload = Map.of(
+                "reservationId", reservation.getId(),
+                "petName", reservation.getPet().getName(),
+                "hospitalName", reservation.getHospitalReservation().getVeterinarian().getHospital().getName(),
+                "reservationDate", reservation.getHospitalReservation().getTimeSlot().getDate().toString(),
+                "reservationTime", reservation.getHospitalReservation().getTimeSlot().getStartTime().toString()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.RESERVATION_CONFIRMED,
+                reservation.getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
+    }
+
+    private void publishPaymentCompletedEvent(Payment payment) {
+        Map<String, Object> payload = Map.of(
+                "paymentId", payment.getId(),
+                "orderId", payment.getOrderId(),
+                "totalAmount", payment.getTotalAmount(),
+                "paymentMethod", payment.getMethod().name()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.PAYMENT_COMPLETED,
+                payment.getReservation().getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
+    }
+
+    private void publishPaymentFailedEvent(Payment payment) {
+        Map<String, Object> payload = Map.of(
+                "paymentId", payment.getId(),
+                "orderId", payment.getOrderId()
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.PAYMENT_FAILED,
+                payment.getReservation().getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
+    }
+
+    private void publishPaymentRefundedEvent(Payment payment) {
+        Map<String, Object> payload = Map.of(
+                "paymentId", payment.getId(),
+                "refundAmount", payment.getRefundAmount() != null ? payment.getRefundAmount() : 0,
+                "cancelReason", payment.getCancelReason() != null ? payment.getCancelReason() : ""
+        );
+
+        NotificationEvent event = NotificationEvent.of(
+                NotificationEventType.PAYMENT_REFUNDED,
+                payment.getReservation().getUser(),
+                payload
+        );
+
+        notificationEventPublisher.publish(event);
     }
 }

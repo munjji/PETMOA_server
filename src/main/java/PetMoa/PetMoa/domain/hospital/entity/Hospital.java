@@ -34,7 +34,7 @@ public class Hospital {
 
     private Double longitude;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "hospital_available_pet_types", joinColumns = @JoinColumn(name = "hospital_id"))
     @Enumerated(EnumType.STRING)
     @Column(name = "pet_type")
